@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "SportFinder (JSX)",
+    "slug": "sportfinder-jsx",
+    "scheme": "sportfinder-jsx",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["android", "ios", "web"],
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "lk.sportfinder.jsx",
+      "adaptiveIcon": {
+        "backgroundColor": "#123D33",
+        "foregroundImage": "./assets/mark.png"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "lk.sportfinder.jsx",
+      "supportsTablet": true
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#123D33",
+          "image": "./assets/mark.png",
+          "imageWidth": 96
+        }
+      ]
+    ]
+  }
+}
