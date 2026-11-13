@@ -21,7 +21,6 @@ export function DatabaseGate({ children }) {
 
   useEffect(() => {
     let active = true;
-    setError(null);
 
     initializeDatabase()
       .then((openedDatabase) => {
@@ -52,6 +51,7 @@ export function DatabaseGate({ children }) {
           <Pressable
             accessibilityRole="button"
             onPress={() => {
+              setError(null);
               setDatabase(null);
               setAttempt((currentAttempt) => currentAttempt + 1);
             }}
