@@ -1,24 +1,30 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { Redirect } from 'expo-router';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../auth/AuthProvider';
 import { colors } from '../components/theme';
 
-export default function StartScreen() {
+export default function IndexScreen() {
+  const { account, bootstrapError, isLoading } = useAuth();
+
+  if (!isLoading && !bootstrapError) {
+    return <Redirect href={account ? '/home' : '/login'} />;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Image
-            source={require('../../assets/mark.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.title}>SportFinder</Text>
-          <Text style={styles.tagline}>Find sports equipment across Sri Lanka</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>JSX Starter • SDK 58</Text>
-          </View>
-        </View>
+      <View style={styles.content}>
+        {bootstrapError ? (
+          <>
+            <Text style={styles.title}>Could not restore your local session</Text>
+            <Text style={styles.message}>{bootstrapError.message}</Text>
+          </>
+        ) : (
+          <>
+            <ActivityIndicator color={colors.forest} size="large" />
+            <Text style={styles.message}>Loading your account…</Text>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -29,53 +35,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  container: {
+  content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-    width: '100%',
-    maxWidth: 360,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
+    paddingHorizontal: 28,
   },
   title: {
-    fontSize: 26,
+    color: colors.ink,
+    fontSize: 20,
     fontWeight: '700',
-    color: colors.forest,
+    textAlign: 'center',
     marginBottom: 8,
   },
-  tagline: {
+  message: {
     fontSize: 15,
     color: colors.muted,
     textAlign: 'center',
-    marginBottom: 24,
-  },
-  badge: {
-    backgroundColor: colors.mint,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  badgeText: {
-    color: colors.forest,
-    fontSize: 13,
-    fontWeight: '600',
+    lineHeight: 22,
+    marginTop: 14,
   },
 });
