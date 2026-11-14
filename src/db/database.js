@@ -1,4 +1,6 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
+import { acquireBrowserDatabaseAccess } from './browserAccess';
 import { migrateDatabase } from './migrations';
 
 export const DATABASE_NAME = 'sportfinder.db';
@@ -19,6 +21,9 @@ export function initializeDatabase() {
     let db;
 
     try {
+      if (Platform.OS === 'web') {
+        await acquireBrowserDatabaseAccess();
+      }
       db = await SQLite.openDatabaseAsync(DATABASE_NAME);
       await db.execAsync('PRAGMA foreign_keys = ON');
 

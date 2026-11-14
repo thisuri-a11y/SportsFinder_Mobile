@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../components/theme';
+import { BROWSER_STORAGE_UNAVAILABLE, DATABASE_IN_USE } from './browserAccess';
 import { initializeDatabase } from './database';
 
 const DatabaseContext = createContext(null);
@@ -40,25 +41,42 @@ export function DatabaseGate({ children }) {
   }, [attempt]);
 
   if (error) {
+    const locked = error.code === DATABASE_IN_USE;
+    const unsupported = error.code === BROWSER_STORAGE_UNAVAILABLE;
+    const reload = Platform.OS === 'web' && !locked && !unsupported;
+    const message = locked
+      ? 'Use the other tab, or close it and select Retry here. Your saved data will stay on this device.'
+      : unsupported
+        ? 'Open this address directly in a browser that supports local storage, such as Chrome or Edge.'
+        : reload
+          ? 'Close any other SportFinder tabs, then reload this page to restart local storage.'
+          : 'Check your device storage, then retry the database setup.';
+
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
-          <Text style={styles.title}>SportFinder could not open its database</Text>
-          <Text style={styles.message}>
-            Check your device storage, then retry the database setup.
+          <Text accessibilityRole="header" style={styles.title}>
+            {locked ? 'SportFinder is open in another tab' : 'SportFinder could not open its database'}
           </Text>
-          <Text style={styles.details}>{error.message}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setError(null);
-              setDatabase(null);
-              setAttempt((currentAttempt) => currentAttempt + 1);
-            }}
-            style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.buttonText}>Retry</Text>
-          </Pressable>
+          <Text style={styles.message}>{message}</Text>
+          {!locked && !unsupported && <Text style={styles.details}>{error.message}</Text>}
+          {!unsupported && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (reload) {
+                  window.location.reload();
+                  return;
+                }
+                setError(null);
+                setDatabase(null);
+                setAttempt((currentAttempt) => currentAttempt + 1);
+              }}
+              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+            >
+              <Text style={styles.buttonText}>{reload ? 'Reload page' : 'Retry'}</Text>
+            </Pressable>
+          )}
         </View>
       </SafeAreaView>
     );
