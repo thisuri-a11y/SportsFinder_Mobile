@@ -11,13 +11,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from './theme';
+import { colors, type } from './theme';
 
 export function ScreenContainer({ children, scroll = true, contentStyle = null }) {
   const content = <View style={[styles.page, contentStyle]}>{children}</View>;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
@@ -41,7 +41,7 @@ export function ScreenTitle({ eyebrow = null, title, subtitle = null, right = nu
     <View style={styles.screenTitleRow}>
       <View style={styles.screenTitleCopy}>
         {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-        <Text style={styles.screenTitle}>{title}</Text>
+        <Text accessibilityRole="header" style={styles.screenTitle}>{title}</Text>
         {subtitle ? <Text style={styles.screenSubtitle}>{subtitle}</Text> : null}
       </View>
       {right}
@@ -52,7 +52,7 @@ export function ScreenTitle({ eyebrow = null, title, subtitle = null, right = nu
 export function SectionTitle({ title, actionLabel = null, onAction = null }) {
   return (
     <View style={styles.sectionTitleRow}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
       {actionLabel && onAction ? (
         <Pressable
           accessibilityRole="button"
@@ -380,9 +380,10 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   screenTitle: {
+    ...type.display,
     color: colors.ink,
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 32,
+    lineHeight: 36,
   },
   screenSubtitle: {
     color: colors.muted,
@@ -398,9 +399,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    ...type.display,
     color: colors.ink,
-    fontSize: 19,
-    fontWeight: '800',
+    fontSize: 21,
   },
   textAction: {
     alignItems: 'center',

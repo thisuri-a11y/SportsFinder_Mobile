@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppButton, FilterChip, FilterChipRow, ProductCard, QueryStatus, ScreenContainer, ScreenTitle, SectionTitle, ShopCard } from '../../components/browse-ui';
 import { SportsArt } from '../../components/SportsArt';
-import { colors } from '../../components/theme';
+import { colors, type } from '../../components/theme';
 import { useDatabase } from '../../db/DatabaseGate';
 import { listCategories, listDistricts, listProducts, listShops } from '../../db/repository';
 import { useDatabaseQuery } from '../../hooks/useDatabaseQuery';
@@ -13,7 +13,7 @@ const POPULAR_DISTRICTS = ['Colombo', 'Gampaha', 'Kandy', 'Galle'];
 
 export default function HomeScreen() {
   const database = useDatabase();
-  const { account, signOut } = useAuth();
+  const { account } = useAuth();
   const loadHome = useCallback(async () => {
     const [shops, products, districts, categories] = await Promise.all([
       listShops(database),
@@ -37,10 +37,7 @@ export default function HomeScreen() {
   return (
     <ScreenContainer>
       <ScreenTitle
-        eyebrow="SPORTFINDER · SRI LANKA"
         title={`Hello, ${account?.username || 'there'}`}
-        subtitle="Find the right gear at sports shops near you."
-        right={<AppButton label="Sign out" secondary onPress={signOut} style={styles.signOut} />}
       />
 
       <View style={styles.hero}>
@@ -143,9 +140,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  signOut: {
-    minWidth: 88,
-  },
   hero: {
     alignItems: 'flex-start',
     backgroundColor: colors.forest,
@@ -165,10 +159,10 @@ const styles = StyleSheet.create({
     marginVertical: -8,
   },
   heroTitle: {
+    ...type.display,
     color: colors.surface,
-    fontSize: 27,
-    fontWeight: '800',
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 35,
     flexGrow: 1,
     flexBasis: 145,
     maxWidth: 375,
