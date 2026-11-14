@@ -1,128 +1,204 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
+import { AppButton, FilterChip, FilterChipRow, ProductCard, QueryStatus, ScreenContainer, ScreenTitle, SectionTitle, ShopCard } from '../../components/browse-ui';
 import { colors } from '../../components/theme';
+import { useDatabase } from '../../db/DatabaseGate';
+import { listCategories, listDistricts, listProducts, listShops } from '../../db/repository';
+import { useDatabaseQuery } from '../../hooks/useDatabaseQuery';
+
+const POPULAR_DISTRICTS = ['Colombo', 'Gampaha', 'Kandy', 'Galle'];
 
 export default function HomeScreen() {
+  const database = useDatabase();
   const { account, signOut } = useAuth();
+  const loadHome = useCallback(async () => {
+    const [shops, products, districts, categories] = await Promise.all([
+      listShops(database),
+      listProducts(database),
+      listDistricts(database),
+      listCategories(database),
+    ]);
+    return { shops, products, districts, categories };
+  }, [database]);
+  const { data, error, isLoading, retry } = useDatabaseQuery(loadHome);
+
+  function openShop(shopId) {
+    router.push({ pathname: '/shops/[id]', params: { id: String(shopId) } });
+  }
+
+  const popularDistricts = POPULAR_DISTRICTS.filter((name) =>
+    data?.districts.some((district) => district.name === name),
+  );
+  const isEmpty = Boolean(data && data.shops.length === 0 && data.products.length === 0);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>SPORTFINDER ACCOUNT</Text>
-          <Text style={styles.title}>Welcome, {account?.username}</Text>
-          <Text style={styles.subtitle}>
-            Your local account is ready for browsing sports equipment.
+    <ScreenContainer>
+      <ScreenTitle
+        eyebrow="SPORTFINDER · SRI LANKA"
+        title={`Hello, ${account?.username || 'there'}`}
+        subtitle="Find the right gear at sports shops near you."
+        right={<AppButton label="Sign out" secondary onPress={signOut} style={styles.signOut} />}
+      />
+
+      <View style={styles.hero}>
+        <View style={styles.heroCopy}>
+          <View style={styles.heroTag}><Text style={styles.heroTagText}>LOCAL SHOPS · LIVE STOCK</Text></View>
+          <Text style={styles.heroTitle}>Get ready for your next game.</Text>
+          <Text style={styles.heroSubtitle}>
+            Browse equipment by sport, district, or the name of the gear you need.
           </Text>
         </View>
-
-        <View style={styles.card}>
-          <AccountDetail label="Username" value={account?.username} />
-          <AccountDetail
-            label="Account type"
-            value={account?.role === 'admin' ? 'Admin' : 'Browsing account'}
-          />
-          <AccountDetail label="Local account ID" value={String(account?.id ?? '')} />
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={signOut}
-          style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
+        <AppButton
+          label="Find gear"
+          onPress={() => router.push('/find')}
+          style={styles.heroButton}
+        />
       </View>
-    </SafeAreaView>
-  );
-}
 
-function AccountDetail({ label, value }) {
-  return (
-    <View style={styles.detail}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
+      {isLoading || error || isEmpty ? (
+        <QueryStatus
+          isLoading={isLoading}
+          error={error}
+          empty={isEmpty}
+          emptyTitle="No shops or equipment yet"
+          emptyMessage="Try again to reload your local catalogue."
+          onRetry={retry}
+        />
+      ) : null}
+
+      {data && !error ? (
+        <>
+          <View>
+            <SectionTitle title="Popular districts" />
+            {popularDistricts.length > 0 ? (
+              <FilterChipRow>
+                {popularDistricts.map((district) => (
+                  <FilterChip
+                    key={district}
+                    label={district}
+                    onPress={() => router.push({ pathname: '/find', params: { district } })}
+                  />
+                ))}
+              </FilterChipRow>
+            ) : (
+              <Text style={styles.helperText}>Districts will appear here when available.</Text>
+            )}
+          </View>
+
+          <View>
+            <SectionTitle title="Shop by sport" />
+            {data.categories.length > 0 ? (
+              <FilterChipRow>
+                {data.categories.map((category) => (
+                  <FilterChip
+                    key={category}
+                    label={category}
+                    onPress={() => router.push({ pathname: '/catalogue', params: { category } })}
+                  />
+                ))}
+              </FilterChipRow>
+            ) : (
+              <Text style={styles.helperText}>Sports will appear here when equipment is available.</Text>
+            )}
+          </View>
+
+          <View>
+            <SectionTitle
+              title="Shops to explore"
+              actionLabel="See all shops"
+              onAction={() => router.push('/shops')}
+            />
+            <View style={styles.cardList}>
+              {data.shops.slice(0, 3).map((shop) => (
+                <ShopCard key={shop.shop_id} shop={shop} compact onPress={() => openShop(shop.shop_id)} />
+              ))}
+            </View>
+          </View>
+
+          <View>
+            <SectionTitle
+              title="Equipment picks"
+              actionLabel="Browse all gear"
+              onAction={() => router.push('/catalogue')}
+            />
+            <View style={styles.productGrid}>
+              {data.products.slice(0, 4).map((product) => (
+                <ProductCard
+                  key={product.product_id}
+                  product={product}
+                  compact
+                  onShopPress={() => openShop(product.shop_id)}
+                />
+              ))}
+            </View>
+          </View>
+        </>
+      ) : null}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
+  signOut: {
+    minWidth: 88,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+  hero: {
+    alignItems: 'flex-start',
+    backgroundColor: colors.forest,
+    borderRadius: 24,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18,
+    justifyContent: 'space-between',
     padding: 24,
   },
-  header: {
-    alignSelf: 'center',
-    maxWidth: 440,
-    width: '100%',
+  heroCopy: {
+    flex: 1,
+    minWidth: 230,
   },
-  eyebrow: {
-    color: colors.green,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+  heroTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.green,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
-  title: {
-    color: colors.ink,
-    fontSize: 28,
-    fontWeight: '800',
-    marginTop: 10,
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 8,
-  },
-  card: {
-    alignSelf: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginTop: 26,
-    maxWidth: 440,
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  detail: {
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    paddingVertical: 16,
-  },
-  detailLabel: {
-    color: colors.muted,
-    fontSize: 13,
-  },
-  detailValue: {
-    color: colors.ink,
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  signOutButton: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: colors.forest,
-    borderRadius: 14,
-    justifyContent: 'center',
-    marginTop: 22,
-    maxWidth: 440,
-    minHeight: 52,
-    width: '100%',
-  },
-  signOutText: {
+  heroTagText: {
     color: colors.surface,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
-  pressed: {
-    opacity: 0.82,
+  heroTitle: {
+    color: colors.surface,
+    fontSize: 27,
+    fontWeight: '800',
+    lineHeight: 34,
+    marginTop: 14,
+    maxWidth: 520,
+  },
+  heroSubtitle: {
+    color: '#E2EEE7',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
+    maxWidth: 560,
+  },
+  heroButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.amber,
+    minWidth: 140,
+  },
+  helperText: {
+    color: colors.muted,
+    fontSize: 14,
+  },
+  cardList: {
+    gap: 10,
+  },
+  productGrid: {
+    gap: 10,
   },
 });
