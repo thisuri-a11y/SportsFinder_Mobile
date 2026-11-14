@@ -2,6 +2,8 @@
 
 SportFinder helps buyers find sports equipment in Sri Lanka by district, sport, brand, or shop. Buyers can check prices and availability before visiting a shop, while shop owners can maintain their listings on the same installation. The app uses a local SQLite database so searching, signing in, and managing inventory work without internet access in an installed release.
 
+This is the original interface on `main`. The [Sports UI edition](https://github.com/thisuri-a11y/SportsFinder_Mobile/tree/feature/sports-ui) adds a branded header, icon tabs, and an Account screen.
+
 ## Key features
 
 - **Find gear:** Search by product, brand, sport, or shop and filter by district. The catalogue can show in-stock items only.
@@ -17,15 +19,19 @@ SportFinder helps buyers find sports equipment in Sri Lanka by district, sport, 
 
 ## Screenshots
 
-These screenshots show the running web preview at a phone-sized viewport.
+Captured from the running web app at a phone-sized viewport using demo data.
 
-| Sign-in and registration | Buyer gear search |
+| Home | Find Gear |
 | --- | --- |
-| <img src="docs/screenshots/sportfinder-login.png" alt="SportFinder sign-in screen with buyer and shop owner registration options" width="270"> | <img src="docs/screenshots/sportfinder-buyer-search.png" alt="Buyer search result showing a football listing, price, availability, and shop" width="270"> |
+| <img src="docs/screenshots/sportfinder-home.png" alt="Home with table tennis artwork and a Find Gear button" width="260"> | <img src="docs/screenshots/sportfinder-buyer-search.png" alt="Gear search results with keyword and district filters" width="260"> |
+
+| Sign in | Create an account |
+| --- | --- |
+| <img src="docs/screenshots/sportfinder-login.png" alt="Local sign-in with a password visibility toggle" width="260"> | <img src="docs/screenshots/sportfinder-registration.png" alt="Registration with User and Shop Owner account options" width="260"> |
 
 | Shop owner management | Admin management |
 | --- | --- |
-| <img src="docs/screenshots/sportfinder-shop-owner.png" alt="Shop owner Manage screen showing their shop and equipment with edit and delete controls" width="270"> | <img src="docs/screenshots/sportfinder-admin.png" alt="Admin Manage screen showing listings across several shops" width="270"> |
+| <img src="docs/screenshots/sportfinder-shop-owner.png" alt="Shop owner manages their own shop and equipment" width="260"> | <img src="docs/screenshots/sportfinder-admin.png" alt="Admin manages listings across multiple shops" width="260"> |
 
 ## Technologies used
 
@@ -76,7 +82,7 @@ Use Node.js 24.3 or newer within the Node 24 release line, with npm. For the web
    npm run web:preview
    ```
 
-3. Open `http://localhost:8083` and sign in with a demo account or register as a buyer or shop owner. Use one preview tab at a time so SQLite can open its database.
+3. Open `http://localhost:8083` and sign in with a demo account, or choose **Create an account** and select **Create a User Account** or **Create a Shop Owner Account**. Use one preview tab at a time so SQLite can open its database.
 
 ### Demo accounts
 
