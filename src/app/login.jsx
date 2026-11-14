@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthProvider';
 import { SportsArt } from '../components/SportsArt';
-import { colors } from '../components/theme';
+import { colors, type } from '../components/theme';
 
 const ACCOUNT_TYPES = [
   { role: 'buyer', title: 'Create a User Account', description: 'Find gear, compare prices, and check stock.' },
@@ -255,14 +255,15 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.85 }],
   },
   brand: {
+    ...type.display,
     color: colors.surface,
     fontSize: 23,
     fontWeight: '800',
   },
   title: {
+    ...type.display,
     color: colors.ink,
     fontSize: 25,
-    fontWeight: '800',
     marginTop: 19,
   },
   subtitle: {
