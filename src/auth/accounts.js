@@ -14,19 +14,26 @@ const SCRYPT_OPTIONS = {
 
 const PUBLIC_ACCOUNT_COLUMNS = 'id, username, role, created_at';
 
+class AccountFieldError extends Error {
+  constructor(field, message) {
+    super(message);
+    this.field = field;
+  }
+}
+
 function characterCount(value) {
   return Array.from(value).length;
 }
 
 function normalizeUsername(value) {
-  if (typeof value !== 'string') {
-    throw new Error('Enter a username.');
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new AccountFieldError('username', 'Enter a username.');
   }
 
   const username = value.trim();
   const length = characterCount(username);
   if (length < 3 || length > 32 || username.includes('\0')) {
-    throw new Error('Usernames must be 3–32 characters.');
+    throw new AccountFieldError('username', 'Use 3–32 characters.');
   }
 
   return username;
@@ -34,7 +41,7 @@ function normalizeUsername(value) {
 
 function validateNewPassword(value) {
   if (typeof value !== 'string' || characterCount(value) < 8) {
-    throw new Error('New passwords must be at least 8 characters.');
+    throw new AccountFieldError('password', 'Use at least 8 characters.');
   }
   return value;
 }
@@ -90,7 +97,7 @@ async function insertAccount(db, username, password, role) {
     return getAccountById(db, result.lastInsertRowId);
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      throw new Error('That username is already in use.');
+      throw new AccountFieldError('username', 'That username is already in use.');
     }
     throw error;
   }
@@ -110,7 +117,7 @@ export async function authenticateAccount(db, credentials) {
   const password = credentials?.password;
 
   if (typeof password !== 'string' || password.length === 0) {
-    throw new Error('Enter your password.');
+    throw new AccountFieldError('password', 'Enter your password.');
   }
 
   const account = await db.getFirstAsync(
