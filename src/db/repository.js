@@ -50,6 +50,32 @@ const PRODUCT_COLUMNS = `
   s.address AS shop_address,
   s.phone AS shop_phone`;
 
+async function withAdminSession(db, mutation) {
+  let result;
+  await db.withTransactionAsync(async () => {
+    const admin = await db.getFirstAsync(
+      `SELECT a.id
+       FROM local_session ls
+       JOIN accounts a ON a.id = ls.account_id
+       WHERE ls.singleton_id = 1 AND a.role = 'admin'`,
+    );
+    if (!admin) {
+      throw new Error('Only the signed-in admin can manage shops and equipment.');
+    }
+    result = await mutation();
+  });
+  return result;
+}
+
+export async function getPersistedAdminSession(db) {
+  return db.getFirstAsync(
+    `SELECT a.id, a.username, a.role
+     FROM local_session ls
+     JOIN accounts a ON a.id = ls.account_id
+     WHERE ls.singleton_id = 1 AND a.role = 'admin'`,
+  );
+}
+
 export async function listShops(db, filters = {}) {
   const conditions = [];
   const parameters = [];
@@ -86,34 +112,40 @@ export function searchShops(db, searchTerm, filters = {}) {
 }
 
 export async function createShop(db, shop) {
-  const result = await db.runAsync(
-    `INSERT INTO shops (name, district_id, address, phone)
-     VALUES (?, ?, ?, ?)`,
-    shop.name,
-    shop.districtId,
-    shop.address,
-    shop.phone,
-  );
-  return result.lastInsertRowId;
+  return withAdminSession(db, async () => {
+    const result = await db.runAsync(
+      `INSERT INTO shops (name, district_id, address, phone)
+       VALUES (?, ?, ?, ?)`,
+      shop.name,
+      shop.districtId,
+      shop.address,
+      shop.phone,
+    );
+    return result.lastInsertRowId;
+  });
 }
 
 export async function updateShop(db, shopId, shop) {
-  const result = await db.runAsync(
-    `UPDATE shops
-     SET name = ?, district_id = ?, address = ?, phone = ?
-     WHERE id = ?`,
-    shop.name,
-    shop.districtId,
-    shop.address,
-    shop.phone,
-    shopId,
-  );
-  return result.changes;
+  return withAdminSession(db, async () => {
+    const result = await db.runAsync(
+      `UPDATE shops
+       SET name = ?, district_id = ?, address = ?, phone = ?
+       WHERE id = ?`,
+      shop.name,
+      shop.districtId,
+      shop.address,
+      shop.phone,
+      shopId,
+    );
+    return result.changes;
+  });
 }
 
 export async function deleteShop(db, shopId) {
-  const result = await db.runAsync('DELETE FROM shops WHERE id = ?', shopId);
-  return result.changes;
+  return withAdminSession(db, async () => {
+    const result = await db.runAsync('DELETE FROM shops WHERE id = ?', shopId);
+    return result.changes;
+  });
 }
 
 export async function listProducts(db, filters = {}) {
@@ -161,40 +193,46 @@ export function searchProducts(db, searchTerm, filters = {}) {
 }
 
 export async function createProduct(db, product) {
-  const result = await db.runAsync(
-    `INSERT INTO products
-      (shop_id, name, brand, category, price_lkr_cents, available)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    product.shopId,
-    product.name,
-    product.brand,
-    product.category,
-    product.priceLkrCents,
-    product.available,
-  );
-  return result.lastInsertRowId;
+  return withAdminSession(db, async () => {
+    const result = await db.runAsync(
+      `INSERT INTO products
+        (shop_id, name, brand, category, price_lkr_cents, available)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      product.shopId,
+      product.name,
+      product.brand,
+      product.category,
+      product.priceLkrCents,
+      product.available,
+    );
+    return result.lastInsertRowId;
+  });
 }
 
 export async function updateProduct(db, productId, product) {
-  const result = await db.runAsync(
-    `UPDATE products
-     SET shop_id = ?, name = ?, brand = ?, category = ?,
-         price_lkr_cents = ?, available = ?
-     WHERE id = ?`,
-    product.shopId,
-    product.name,
-    product.brand,
-    product.category,
-    product.priceLkrCents,
-    product.available,
-    productId,
-  );
-  return result.changes;
+  return withAdminSession(db, async () => {
+    const result = await db.runAsync(
+      `UPDATE products
+       SET shop_id = ?, name = ?, brand = ?, category = ?,
+           price_lkr_cents = ?, available = ?
+       WHERE id = ?`,
+      product.shopId,
+      product.name,
+      product.brand,
+      product.category,
+      product.priceLkrCents,
+      product.available,
+      productId,
+    );
+    return result.changes;
+  });
 }
 
 export async function deleteProduct(db, productId) {
-  const result = await db.runAsync('DELETE FROM products WHERE id = ?', productId);
-  return result.changes;
+  return withAdminSession(db, async () => {
+    const result = await db.runAsync('DELETE FROM products WHERE id = ?', productId);
+    return result.changes;
+  });
 }
 
 export async function listCategories(db) {
