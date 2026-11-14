@@ -367,10 +367,30 @@ async function createAuthSchema(db) {
   `);
 }
 
+async function addOutOfStockFootballSample(db) {
+  await db.runAsync(
+    `INSERT INTO products
+      (shop_id, name, brand, category, price_lkr_cents, available)
+     SELECT s.id, ?, ?, ?, ?, 0
+     FROM shops s
+     WHERE s.name = ? COLLATE NOCASE
+       AND NOT EXISTS (
+         SELECT 1 FROM products p
+         WHERE p.shop_id = s.id AND p.name = ? COLLATE NOCASE
+       )`,
+    'Training Football',
+    'Nivia',
+    'Football',
+    89500,
+    'Lion City Sports',
+    'Training Football',
+  );
+}
+
 export async function migrateDatabase(db) {
   const versionResult = await db.getFirstAsync('PRAGMA user_version');
   const currentVersion = versionResult?.user_version ?? 0;
-  const latestVersion = 2;
+  const latestVersion = 3;
 
   if (currentVersion > latestVersion) {
     throw new Error('This database was created by a newer version of SportFinder.');
@@ -389,6 +409,11 @@ export async function migrateDatabase(db) {
     if (currentVersion < 2) {
       await createAuthSchema(db);
       await db.execAsync('PRAGMA user_version = 2');
+    }
+
+    if (currentVersion < 3) {
+      await addOutOfStockFootballSample(db);
+      await db.execAsync('PRAGMA user_version = 3');
     }
   });
 }

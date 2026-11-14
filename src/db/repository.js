@@ -71,6 +71,16 @@ export async function listShops(db, filters = {}) {
   );
 }
 
+export async function getShopById(db, shopId) {
+  return db.getFirstAsync(
+    `SELECT ${SHOP_COLUMNS}
+     FROM shops s
+     JOIN districts d ON d.id = s.district_id
+     WHERE s.id = ?`,
+    shopId,
+  );
+}
+
 export function searchShops(db, searchTerm, filters = {}) {
   return listShops(db, { ...filters, search: searchTerm });
 }
@@ -194,6 +204,10 @@ export async function listCategories(db) {
      ORDER BY category COLLATE NOCASE`,
   );
   return rows.map((row) => row.category);
+}
+
+export async function listDistricts(db) {
+  return db.getAllAsync('SELECT id, name FROM districts ORDER BY name COLLATE NOCASE');
 }
 
 export function getShopInventory(db, shopId) {
