@@ -113,6 +113,39 @@ export function SearchField({ value, onChangeText, placeholder, accessibilityLab
   );
 }
 
+/**
+ * @param {{ label: string, value: string, onChangeText: (value: string) => void, placeholder?: string, error?: string | null, keyboardType?: import('react-native').KeyboardTypeOptions, autoCapitalize?: import('react-native').AutoCapitalize, multiline?: boolean }} props
+ */
+export function FormField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  error = null,
+  keyboardType = 'default',
+  autoCapitalize = 'sentences',
+  multiline = false,
+}) {
+  return (
+    <View style={styles.formField}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        accessibilityLabel={label}
+        accessibilityHint={error || undefined}
+        autoCapitalize={autoCapitalize}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.muted}
+        style={[styles.formInput, multiline && styles.formInputMultiline, error && styles.formInputError]}
+        value={value}
+      />
+      {error ? <Text accessibilityRole="alert" style={styles.fieldError}>{error}</Text> : null}
+    </View>
+  );
+}
+
 export function SelectField({ label, value, options, onChange }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -194,7 +227,7 @@ export function FilterChipRow({ children }) {
   );
 }
 
-export function ShopCard({ shop, onPress, compact = false }) {
+export function ShopCard({ shop, onPress = null, compact = false }) {
   const content = (
     <>
       <View style={styles.cardTopRow}>
@@ -440,6 +473,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 6,
+  },
+  formField: {
+    gap: 2,
+  },
+  formInput: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    color: colors.ink,
+    fontSize: 16,
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+  },
+  formInputMultiline: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  formInputError: {
+    borderColor: colors.danger,
+  },
+  fieldError: {
+    color: colors.danger,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3,
   },
   selectButton: {
     alignItems: 'center',

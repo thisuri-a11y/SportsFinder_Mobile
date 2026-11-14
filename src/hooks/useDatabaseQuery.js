@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
+import { subscribeToDatabaseRefresh } from './databaseRefresh';
 
 export function useDatabaseQuery(loadData) {
   const [requestId, setRequestId] = useState(0);
   const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    return subscribeToDatabaseRefresh(() => {
+      setRequestId((current) => current + 1);
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
