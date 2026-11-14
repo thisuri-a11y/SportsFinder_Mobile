@@ -15,8 +15,8 @@ import { useAuth } from '../auth/AuthProvider';
 import { colors } from '../components/theme';
 
 const ACCOUNT_TYPES = [
-  { role: 'buyer', title: 'I want to find gear', description: 'Browse shops, compare prices, and check what’s in stock.' },
-  { role: 'shop_owner', title: 'I want to list gear', description: 'Add your shop and manage your products.' },
+  { role: 'buyer', title: 'Create a User Account', description: 'Find gear, compare prices, and check stock.' },
+  { role: 'shop_owner', title: 'Create a Shop Owner Account', description: 'List your shop and manage your products.' },
 ];
 
 export default function LoginScreen() {
@@ -94,7 +94,7 @@ export default function LoginScreen() {
 
             {isNewAccount && (
               <View style={styles.roleList} accessibilityRole="radiogroup" accessibilityLabel="Account type">
-                <Text style={styles.rolePrompt}>How will you use SportFinder?</Text>
+                <Text style={styles.rolePrompt}>Choose an account type</Text>
                 {ACCOUNT_TYPES.map((type) => (
                   <Pressable
                     key={type.role}
