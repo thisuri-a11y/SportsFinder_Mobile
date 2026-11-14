@@ -13,8 +13,10 @@ async function importSourceExports(filename, exports) {
   return import(`data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`);
 }
 
-const [{ migrateDatabase }, repository, validation] = await Promise.all([
-  importSourceExports('src/db/migrations.js', ['migrateDatabase']),
+const [migrations, repository, validation] = await Promise.all([
+  importSourceExports('src/db/migrations.js', [
+    'createInitialSchema', 'createAuthSchema', 'addOutOfStockFootballSample', 'migrateDatabase',
+  ]),
   importSourceExports('src/db/repository.js', [
     'createShop',
     'updateShop',
@@ -22,7 +24,7 @@ const [{ migrateDatabase }, repository, validation] = await Promise.all([
     'createProduct',
     'updateProduct',
     'deleteProduct',
-    'getPersistedAdminSession',
+    'getManagementSession',
     'listDistricts',
     'listProducts',
     'listShops',
@@ -33,6 +35,7 @@ const [{ migrateDatabase }, repository, validation] = await Promise.all([
     'parseLkrToCents',
   ]),
 ]);
+const { migrateDatabase } = migrations;
 
 async function openFixture() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'sportfinder-js-tests-'));
@@ -99,10 +102,18 @@ test('migration creates and seeds a stable local catalogue', async (t) => {
   const fixture = await openFixture();
   t.after(() => fixture.close());
 
-  assert.equal(fixture.raw.prepare('PRAGMA user_version').get().user_version, 3);
+  assert.equal(fixture.raw.prepare('PRAGMA user_version').get().user_version, 4);
   assert.equal((await repository.listDistricts(fixture.db)).length, 25);
   assert.equal((await repository.listShops(fixture.db)).length, 8);
   assert.equal((await repository.listProducts(fixture.db)).length, 25);
+  assert.deepEqual(
+    fixture.raw.prepare('SELECT username, role FROM accounts ORDER BY username').all().map((row) => ({ ...row })),
+    [
+      { username: 'demo-admin', role: 'admin' },
+      { username: 'demo-buyer', role: 'buyer' },
+      { username: 'demo-owner', role: 'shop_owner' },
+    ],
+  );
 
   await migrateDatabase(fixture.db);
   assert.equal((await repository.listProducts(fixture.db)).length, 25, 'rerunning migrations must not duplicate seed data');
@@ -164,29 +175,101 @@ test('shop and equipment form validation trims text and converts rupees to cents
   assert.equal(productForm.values.available, 1);
 });
 
-test('browsing accounts cannot execute management writes', async (t) => {
+test('buyers can browse but cannot execute management writes', async (t) => {
   const fixture = await openFixture();
   t.after(() => fixture.close());
-  const browsingId = await addAccount(fixture.raw, 'browse-test', 'browsing');
-  await setSession(fixture.raw, browsingId);
+  const buyerId = await addAccount(fixture.raw, 'buyer-test', 'buyer');
+  await setSession(fixture.raw, buyerId);
   const initialShopCount = (await repository.listShops(fixture.db)).length;
   const initialProductCount = (await repository.listProducts(fixture.db)).length;
 
   await assert.rejects(
     () => repository.createShop(fixture.db, { name: 'Blocked', districtId: 1, address: 'Road', phone: '+94112223333' }),
-    /Only the signed-in admin/,
+    /Only signed-in shop owners and admins/,
   );
   await assert.rejects(
     () => repository.createProduct(fixture.db, { shopId: 1, name: 'Blocked', brand: 'Demo', category: 'Football', priceLkrCents: 1000, available: 1 }),
-    /Only the signed-in admin/,
+    /Only signed-in shop owners and admins/,
   );
   await assert.rejects(
     () => repository.updateShop(fixture.db, 1, { name: 'Blocked', districtId: 1, address: 'Road', phone: '+94112223333' }),
-    /Only the signed-in admin/,
+    /Only signed-in shop owners and admins/,
   );
-  await assert.rejects(() => repository.deleteProduct(fixture.db, 1), /Only the signed-in admin/);
+  await assert.rejects(() => repository.deleteProduct(fixture.db, 1), /Only signed-in shop owners and admins/);
   assert.equal((await repository.listShops(fixture.db)).length, initialShopCount);
   assert.equal((await repository.listProducts(fixture.db)).length, initialProductCount);
+});
+
+test('shop owners can manage only their shops and equipment while buyers can see all listings', async (t) => {
+  const { db, raw, close } = await openFixture();
+  t.after(close);
+  const owner = await addAccount(raw, 'owner-one', 'shop_owner');
+  const otherOwner = await addAccount(raw, 'owner-two', 'shop_owner');
+  const buyer = await addAccount(raw, 'catalogue-buyer', 'buyer');
+  const admin = await addAccount(raw, 'catalogue-admin', 'admin');
+  const shop = { name: 'Owner One Sports', districtId: 1, address: 'Test Lane', phone: '+94112223333' };
+  const product = { name: 'Owner One Ball', brand: 'Demo', category: 'Football', priceLkrCents: 1000, available: 1 };
+  const denied = /only manage their own/;
+
+  await setSession(raw, owner);
+  const shopId = await repository.createShop(db, { ...shop, ownerAccountId: otherOwner });
+  const productId = await repository.createProduct(db, { ...product, shopId });
+  assert.equal(await repository.updateShop(db, shopId, shop), 1);
+  assert.equal(await repository.updateProduct(db, productId, { ...product, shopId }), 1);
+  assert.equal((await repository.listShops(db, { ownerAccountId: owner })).length, 1);
+  assert.equal((await repository.listProducts(db, { ownerAccountId: owner })).length, 1);
+
+  await setSession(raw, otherOwner);
+  const otherShopId = await repository.createShop(db, { ...shop, name: 'Owner Two Sports' });
+  await assert.rejects(() => repository.updateShop(db, shopId, shop), denied);
+  await assert.rejects(() => repository.deleteShop(db, shopId), denied);
+  await assert.rejects(() => repository.createProduct(db, { ...product, shopId }), denied);
+  await assert.rejects(() => repository.updateProduct(db, productId, { ...product, shopId: otherShopId }), denied);
+  await assert.rejects(() => repository.deleteProduct(db, productId), denied);
+
+  await setSession(raw, owner);
+  await assert.rejects(() => repository.updateProduct(db, productId, { ...product, shopId: otherShopId }), denied);
+  const spareProductId = await repository.createProduct(db, { ...product, shopId, name: 'Spare Ball' });
+  assert.equal(await repository.deleteProduct(db, spareProductId), 1);
+  const spareShopId = await repository.createShop(db, { ...shop, name: 'Spare Shop' });
+  assert.equal(await repository.deleteShop(db, spareShopId), 1);
+
+  await setSession(raw, buyer);
+  assert.equal((await repository.listShops(db, { search: shop.name }))[0].shop_id, shopId);
+  assert.equal((await repository.listProducts(db, { search: product.name }))[0].product_id, productId);
+
+  await setSession(raw, admin);
+  assert.equal(await repository.updateProduct(db, productId, { ...product, shopId: otherShopId }), 1);
+  assert.equal(await repository.deleteShop(db, otherShopId), 1);
+  assert.equal((await repository.listProducts(db, { search: product.name })).length, 0);
+});
+
+test('version 3 databases keep accounts, sessions and custom inventory when roles are upgraded', async (t) => {
+  const raw = new DatabaseSync(':memory:');
+  t.after(() => raw.close());
+  const db = wrapDatabase(raw);
+  await migrations.createInitialSchema(db);
+  await migrations.createAuthSchema(db);
+  await migrations.addOutOfStockFootballSample(db);
+  await db.execAsync('PRAGMA user_version = 3');
+  const admin = await addAccount(raw, 'existing-admin', 'admin');
+  const buyer = await addAccount(raw, 'demo-buyer', 'browsing');
+  await setSession(raw, buyer);
+  raw.prepare('UPDATE shops SET address = ? WHERE id = 1').run('Custom Address');
+  raw.prepare('DELETE FROM products WHERE id = 1').run();
+
+  await migrateDatabase(db);
+  assert.equal(raw.prepare('SELECT account_id FROM local_session').get().account_id, buyer);
+  assert.equal(raw.prepare('SELECT role FROM accounts WHERE id = ?').get(buyer).role, 'buyer');
+  assert.equal(raw.prepare('SELECT username FROM accounts WHERE role = ?').get('admin').username, 'existing-admin');
+  assert.equal(raw.prepare('SELECT COUNT(*) AS count FROM accounts WHERE role = ?').get('admin').count, 1);
+  assert.equal(raw.prepare('SELECT role FROM accounts WHERE username = ?').get('demo-buyer-2').role, 'buyer');
+  assert.equal(raw.prepare('SELECT address FROM shops WHERE id = 1').get().address, 'Custom Address');
+  assert.equal(raw.prepare('SELECT owner_account_id FROM shops WHERE id = 1').get().owner_account_id, null);
+  assert.equal(raw.prepare('SELECT id FROM products WHERE id = 1').get(), undefined);
+  assert.deepEqual(raw.prepare('PRAGMA foreign_key_check').all(), []);
+  await setSession(raw, admin);
+  assert.equal((await repository.getManagementSession(db)).id, admin);
 });
 
 test('deleting a shop cascades its equipment out of shop and product queries', async (t) => {
@@ -245,7 +328,7 @@ test('edits, deletions, and local session persist after reopening SQLite', async
   const reopenedRaw = new DatabaseSync(fixture.databasePath);
   const reopenedDb = wrapDatabase(reopenedRaw);
   await migrateDatabase(reopenedDb);
-  assert.equal((await repository.getPersistedAdminSession(reopenedDb)).id, adminId);
+  assert.equal((await repository.getManagementSession(reopenedDb)).id, adminId);
   const persistedEdit = (await repository.listProducts(reopenedDb, { search: 'Trail Running Shoes' }))[0];
   assert.equal(persistedEdit.price_lkr_cents, 199900);
   assert.equal(persistedEdit.available, 0);

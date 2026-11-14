@@ -90,37 +90,19 @@ async function insertAccount(db, username, password, role) {
     return getAccountById(db, result.lastInsertRowId);
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      if (role === 'admin' && /accounts\.role|single_admin/i.test(error.message)) {
-        throw new Error('An admin account has already been set up on this installation.');
-      }
       throw new Error('That username is already in use.');
     }
     throw error;
   }
 }
 
-export async function hasAdminAccount(db) {
-  const row = await db.getFirstAsync(
-    "SELECT 1 AS present FROM accounts WHERE role = 'admin' LIMIT 1",
-  );
-  return Boolean(row);
-}
-
-export async function createAdminAccount(db, credentials) {
-  const username = normalizeUsername(credentials?.username);
-  const password = validateNewPassword(credentials?.password);
-
-  if (await hasAdminAccount(db)) {
-    throw new Error('An admin account has already been set up on this installation.');
+export async function registerAccount(db, credentials, role) {
+  if (role !== 'buyer' && role !== 'shop_owner') {
+    throw new Error('Choose a buyer or shop owner account.');
   }
-
-  return insertAccount(db, username, password, 'admin');
-}
-
-export async function createBrowsingAccount(db, credentials) {
   const username = normalizeUsername(credentials?.username);
   const password = validateNewPassword(credentials?.password);
-  return insertAccount(db, username, password, 'browsing');
+  return insertAccount(db, username, password, role);
 }
 
 export async function authenticateAccount(db, credentials) {

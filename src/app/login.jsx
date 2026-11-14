@@ -15,30 +15,26 @@ import { useAuth } from '../auth/AuthProvider';
 import { colors } from '../components/theme';
 
 export default function LoginScreen() {
-  const { createUserAccount, setupAdmin, setupAvailable, signIn } = useAuth();
-  const [mode, setMode] = useState(setupAvailable ? 'admin' : 'sign-in');
+  const { createUserAccount, signIn } = useAuth();
+  const [mode, setMode] = useState('sign-in');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isNewAccount = mode === 'admin' || mode === 'register';
-  const title = mode === 'admin'
-    ? 'Set up the admin'
-    : mode === 'register'
-      ? 'Create user account'
-      : 'Sign in';
+  const isNewAccount = mode !== 'sign-in';
+  const title = mode === 'buyer'
+    ? 'Create buyer account'
+    : mode === 'shop_owner' ? 'Create shop owner account' : 'Sign in';
 
   async function submit() {
+    if (isSubmitting) return;
     setError('');
     setIsSubmitting(true);
 
     try {
-      if (mode === 'admin') {
-        await setupAdmin({ username, password });
-        setMode('sign-in');
-      } else if (mode === 'register') {
-        await createUserAccount({ username, password });
+      if (isNewAccount) {
+        await createUserAccount({ username, password }, mode);
       } else {
         await signIn({ username, password });
       }
@@ -76,17 +72,15 @@ export default function LoginScreen() {
             </Text>
 
             <View style={styles.modeList}>
-              {setupAvailable && (
-                <ModeButton
-                  active={mode === 'admin'}
-                  label="Set up the admin"
-                  onPress={() => changeMode('admin')}
-                />
-              )}
               <ModeButton
-                active={mode === 'register'}
-                label="Create user account"
-                onPress={() => changeMode('register')}
+                active={mode === 'buyer'}
+                label="Create buyer account"
+                onPress={() => changeMode('buyer')}
+              />
+              <ModeButton
+                active={mode === 'shop_owner'}
+                label="Create shop owner account"
+                onPress={() => changeMode('shop_owner')}
               />
               <ModeButton
                 active={mode === 'sign-in'}

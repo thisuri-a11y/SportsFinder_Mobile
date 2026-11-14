@@ -1,10 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   authenticateAccount,
-  createAdminAccount,
-  createBrowsingAccount,
   getAccountById,
-  hasAdminAccount,
+  registerAccount,
 } from './accounts';
 import { useDatabase } from '../db/DatabaseGate';
 import { clearLocalSession, loadLocalSessionAccountId, saveLocalSession } from './session';
@@ -22,7 +20,6 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const database = useDatabase();
   const [account, setAccount] = useState(null);
-  const [setupAvailable, setSetupAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [bootstrapError, setBootstrapError] = useState(null);
 
@@ -31,10 +28,7 @@ export function AuthProvider({ children }) {
 
     async function loadAuthState() {
       try {
-        const [accountId, adminExists] = await Promise.all([
-          loadLocalSessionAccountId(database),
-          hasAdminAccount(database),
-        ]);
+        const accountId = await loadLocalSessionAccountId(database);
         const restoredAccount = accountId ? await getAccountById(database, accountId) : null;
 
         if (!active) {
@@ -45,7 +39,6 @@ export function AuthProvider({ children }) {
           await clearLocalSession(database);
         }
         setAccount(restoredAccount);
-        setSetupAvailable(!adminExists);
       } catch (error) {
         if (active) {
           setBootstrapError(error);
@@ -69,14 +62,8 @@ export function AuthProvider({ children }) {
     return nextAccount;
   }, [database]);
 
-  const setupAdmin = useCallback(async (credentials) => {
-    const nextAccount = await createAdminAccount(database, credentials);
-    setSetupAvailable(false);
-    return startSession(nextAccount);
-  }, [database, startSession]);
-
-  const createUserAccount = useCallback(async (credentials) => {
-    const nextAccount = await createBrowsingAccount(database, credentials);
+  const createUserAccount = useCallback(async (credentials, role) => {
+    const nextAccount = await registerAccount(database, credentials, role);
     return startSession(nextAccount);
   }, [database, startSession]);
 
@@ -95,8 +82,6 @@ export function AuthProvider({ children }) {
     bootstrapError,
     createUserAccount,
     isLoading,
-    setupAdmin,
-    setupAvailable,
     signIn,
     signOut,
   }), [
@@ -104,8 +89,6 @@ export function AuthProvider({ children }) {
     bootstrapError,
     createUserAccount,
     isLoading,
-    setupAdmin,
-    setupAvailable,
     signIn,
     signOut,
   ]);

@@ -387,10 +387,81 @@ async function addOutOfStockFootballSample(db) {
   );
 }
 
+// Salted scrypt hashes for the documented, local demo password.
+const DEMO_ACCOUNTS = [
+  ['demo-admin', 'admin', '3981e2853e907a2c4e77e54f8236a0c8', 'bd1d151837514d4a5b3c0f9b6c269e515504d0f7e86e8741319af68acb4d2b47'],
+  ['demo-buyer', 'buyer', 'b4c3827893073b24f9ab9a65cbcb6d71', '877c0f37b0346d8a2e30d36836d45ecb9ec7e30cf4003201d1a99b8163a09bd0'],
+  ['demo-owner', 'shop_owner', 'd78fd0a92a95639f20eece1fe231988c', '8e62291ad21868bce1256bd2cdf8b4f09163c509cd9d656186f9651c08895dd4'],
+];
+
+async function addRolesAndOwnership(db, isFreshDatabase) {
+  // Rebuild the tables to update the role constraint without losing account IDs or sessions.
+  await db.execAsync(`
+    ALTER TABLE local_session RENAME TO old_local_session;
+    ALTER TABLE accounts RENAME TO old_accounts;
+
+    CREATE TABLE accounts (
+      id INTEGER PRIMARY KEY NOT NULL,
+      username TEXT NOT NULL COLLATE NOCASE UNIQUE
+        CHECK (length(username) BETWEEN 3 AND 32 AND username = trim(username)),
+      username_key TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      password_hash TEXT NOT NULL
+        CHECK (length(password_hash) = 64 AND password_hash NOT GLOB '*[^0-9a-f]*'),
+      password_salt TEXT NOT NULL
+        CHECK (length(password_salt) = 32 AND password_salt NOT GLOB '*[^0-9a-f]*'),
+      role TEXT NOT NULL CHECK (role IN ('buyer', 'shop_owner', 'admin')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE local_session (
+      singleton_id INTEGER PRIMARY KEY NOT NULL CHECK (singleton_id = 1),
+      account_id INTEGER NOT NULL UNIQUE REFERENCES accounts(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+    );
+
+    INSERT INTO accounts (id, username, username_key, password_hash, password_salt, role, created_at)
+    SELECT id, username, username_key, password_hash, password_salt,
+      CASE WHEN role = 'browsing' THEN 'buyer' ELSE role END, created_at
+    FROM old_accounts;
+    INSERT INTO local_session (singleton_id, account_id)
+      SELECT singleton_id, account_id FROM old_local_session;
+
+    DROP TABLE old_local_session;
+    DROP TABLE old_accounts;
+
+    ALTER TABLE shops ADD COLUMN owner_account_id INTEGER REFERENCES accounts(id)
+      ON UPDATE CASCADE ON DELETE SET NULL;
+    CREATE INDEX shops_owner_account_idx ON shops(owner_account_id);
+  `);
+
+  for (const [baseUsername, role, salt, hash] of DEMO_ACCOUNTS) {
+    if (role === 'admin' && await db.getFirstAsync("SELECT id FROM accounts WHERE role = 'admin'")) {
+      continue;
+    }
+
+    let username = baseUsername;
+    for (let suffix = 2; await db.getFirstAsync(
+      'SELECT id FROM accounts WHERE username_key = ? OR username = ?', username, username,
+    ); suffix += 1) {
+      username = `${baseUsername}-${suffix}`;
+    }
+
+    const { lastInsertRowId } = await db.runAsync(
+      `INSERT INTO accounts (username, username_key, password_hash, password_salt, role)
+       VALUES (?, ?, ?, ?, ?)`,
+      username, username, hash, salt, role,
+    );
+
+    if (isFreshDatabase && role === 'shop_owner') {
+      await db.runAsync('UPDATE shops SET owner_account_id = ? WHERE name = ?', lastInsertRowId, 'Lion City Sports');
+    }
+  }
+}
+
 export async function migrateDatabase(db) {
   const versionResult = await db.getFirstAsync('PRAGMA user_version');
   const currentVersion = versionResult?.user_version ?? 0;
-  const latestVersion = 3;
+  const latestVersion = 4;
 
   if (currentVersion > latestVersion) {
     throw new Error('This database was created by a newer version of SportFinder.');
@@ -414,6 +485,11 @@ export async function migrateDatabase(db) {
     if (currentVersion < 3) {
       await addOutOfStockFootballSample(db);
       await db.execAsync('PRAGMA user_version = 3');
+    }
+
+    if (currentVersion < 4) {
+      await addRolesAndOwnership(db, currentVersion === 0);
+      await db.execAsync('PRAGMA user_version = 4');
     }
   });
 }

@@ -20,7 +20,7 @@ import {
   createShop,
   deleteProduct,
   deleteShop,
-  getPersistedAdminSession,
+  getManagementSession,
   listDistricts,
   listProducts,
   listShops,
@@ -66,17 +66,20 @@ export default function ManageScreen() {
   const busyRef = useRef(false);
 
   const loadManageData = useCallback(async () => {
-    const [adminSession, districts, shops, products] = await Promise.all([
-      getPersistedAdminSession(database),
+    const session = await getManagementSession(database);
+    if (!session || session.id !== account?.id) return null;
+
+    const filters = session.role === 'shop_owner' ? { ownerAccountId: session.id } : {};
+    const [districts, shops, products] = await Promise.all([
       listDistricts(database),
-      listShops(database),
-      listProducts(database),
+      listShops(database, filters),
+      listProducts(database, filters),
     ]);
-    return { adminSession, districts, shops, products };
-  }, [database]);
+    return { session, districts, shops, products };
+  }, [account?.id, database]);
   const { data, error, isLoading, retry } = useDatabaseQuery(loadManageData);
 
-  const authorized = account?.role === 'admin' && data?.adminSession?.id === account.id;
+  const authorized = Boolean(account && data?.session?.id === account.id);
 
   function startShopEditor(shop = null) {
     setFeedback(null);
@@ -157,7 +160,10 @@ export default function ManageScreen() {
   }
 
   function requestDelete(kind, record) {
-    setConfirmation({ kind, id: record.shop_id ?? record.product_id, name: record.shop_name ?? record.product_name });
+    const target = kind === 'shop'
+      ? { id: record.shop_id, name: record.shop_name }
+      : { id: record.product_id, name: record.product_name };
+    setConfirmation({ kind, ...target });
     setFeedback(null);
     closeEditors();
   }
@@ -177,7 +183,7 @@ export default function ManageScreen() {
   if (isLoading || error) {
     return (
       <ScreenContainer>
-        <ScreenTitle eyebrow="ADMIN" title="Manage shops and equipment" />
+        <ScreenTitle title="Manage shops and equipment" />
         <QueryStatus isLoading={isLoading} error={error} empty={false} onRetry={retry} />
       </ScreenContainer>
     );
@@ -186,10 +192,10 @@ export default function ManageScreen() {
   if (!authorized) {
     return (
       <ScreenContainer>
-        <ScreenTitle eyebrow="ADMIN ACCESS" title="Manage shops and equipment" />
+        <ScreenTitle title="Manage shops and equipment" />
         <View style={styles.noticeCard}>
-          <Text style={styles.noticeTitle}>Admin access required</Text>
-          <Text style={styles.noticeText}>Only the signed-in admin can manage shops or equipment.</Text>
+          <Text style={styles.noticeTitle}>Management access required</Text>
+          <Text style={styles.noticeText}>Sign in as a shop owner or admin to manage listings.</Text>
         </View>
         <AppButton label="Back to Home" onPress={() => router.replace('/home')} />
       </ScreenContainer>
@@ -203,9 +209,11 @@ export default function ManageScreen() {
   return (
     <ScreenContainer>
       <ScreenTitle
-        eyebrow="ADMIN"
+        eyebrow={data.session.role === 'admin' ? 'ADMIN' : 'SHOP OWNER'}
         title="Manage shops and equipment"
-        subtitle="Keep local shop details and gear listings up to date."
+        subtitle={data.session.role === 'admin'
+          ? 'Manage listings across all shops.'
+          : 'Keep your shop details and gear listings up to date.'}
       />
 
       {feedback ? (
@@ -265,7 +273,7 @@ export default function ManageScreen() {
         <SectionTitle
           title="Equipment"
           actionLabel={data.shops.length > 0 ? 'Add equipment' : null}
-          onAction={startProductEditor}
+          onAction={() => startProductEditor()}
         />
         {data.shops.length === 0 ? <Text style={styles.helperText}>Add a shop before creating an equipment listing.</Text> : null}
         {productEditor && productForm ? (

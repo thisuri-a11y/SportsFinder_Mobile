@@ -50,36 +50,56 @@ const PRODUCT_COLUMNS = `
   s.address AS shop_address,
   s.phone AS shop_phone`;
 
-async function withAdminSession(db, mutation) {
+async function withManagementSession(db, mutation) {
   let result;
   await db.withTransactionAsync(async () => {
-    const admin = await db.getFirstAsync(
-      `SELECT a.id
-       FROM local_session ls
-       JOIN accounts a ON a.id = ls.account_id
-       WHERE ls.singleton_id = 1 AND a.role = 'admin'`,
-    );
-    if (!admin) {
-      throw new Error('Only the signed-in admin can manage shops and equipment.');
+    const account = await getManagementSession(db);
+    if (!account) {
+      throw new Error('Only signed-in shop owners and admins can manage shops and equipment.');
     }
-    result = await mutation();
+    result = await mutation(account);
   });
   return result;
 }
 
-export async function getPersistedAdminSession(db) {
+export async function getManagementSession(db) {
   return db.getFirstAsync(
     `SELECT a.id, a.username, a.role
      FROM local_session ls
      JOIN accounts a ON a.id = ls.account_id
-     WHERE ls.singleton_id = 1 AND a.role = 'admin'`,
+     WHERE ls.singleton_id = 1 AND a.role IN ('admin', 'shop_owner')`,
   );
+}
+
+async function assertCanManageShop(db, account, shopId) {
+  if (account.role === 'shop_owner' && !await db.getFirstAsync(
+    'SELECT id FROM shops WHERE id = ? AND owner_account_id = ?', shopId, account.id,
+  )) {
+    throw new Error('Shop owners can only manage their own shops and equipment.');
+  }
+}
+
+async function assertCanManageProduct(db, account, productId) {
+  if (account.role === 'shop_owner' && !await db.getFirstAsync(
+    `SELECT p.id FROM products p JOIN shops s ON s.id = p.shop_id
+     WHERE p.id = ? AND s.owner_account_id = ?`, productId, account.id,
+  )) {
+    throw new Error('Shop owners can only manage their own shops and equipment.');
+  }
+}
+
+function addOwnerFilter(conditions, parameters, ownerAccountId) {
+  if (ownerAccountId != null) {
+    conditions.push('s.owner_account_id = ?');
+    parameters.push(ownerAccountId);
+  }
 }
 
 export async function listShops(db, filters = {}) {
   const conditions = [];
   const parameters = [];
 
+  addOwnerFilter(conditions, parameters, filters.ownerAccountId);
   addDistrictFilter(conditions, parameters, filters.districtId, filters.districtName);
   addSearchFilter(conditions, parameters, filters.search, [
     's.name',
@@ -112,21 +132,23 @@ export function searchShops(db, searchTerm, filters = {}) {
 }
 
 export async function createShop(db, shop) {
-  return withAdminSession(db, async () => {
+  return withManagementSession(db, async (account) => {
     const result = await db.runAsync(
-      `INSERT INTO shops (name, district_id, address, phone)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO shops (name, district_id, address, phone, owner_account_id)
+       VALUES (?, ?, ?, ?, ?)`,
       shop.name,
       shop.districtId,
       shop.address,
       shop.phone,
+      account.role === 'shop_owner' ? account.id : null,
     );
     return result.lastInsertRowId;
   });
 }
 
 export async function updateShop(db, shopId, shop) {
-  return withAdminSession(db, async () => {
+  return withManagementSession(db, async (account) => {
+    await assertCanManageShop(db, account, shopId);
     const result = await db.runAsync(
       `UPDATE shops
        SET name = ?, district_id = ?, address = ?, phone = ?
@@ -142,7 +164,8 @@ export async function updateShop(db, shopId, shop) {
 }
 
 export async function deleteShop(db, shopId) {
-  return withAdminSession(db, async () => {
+  return withManagementSession(db, async (account) => {
+    await assertCanManageShop(db, account, shopId);
     const result = await db.runAsync('DELETE FROM shops WHERE id = ?', shopId);
     return result.changes;
   });
@@ -157,6 +180,7 @@ export async function listProducts(db, filters = {}) {
     parameters.push(filters.shopId);
   }
 
+  addOwnerFilter(conditions, parameters, filters.ownerAccountId);
   addDistrictFilter(conditions, parameters, filters.districtId, filters.districtName);
 
   if (typeof filters.category === 'string' && filters.category.trim() !== '') {
@@ -193,7 +217,8 @@ export function searchProducts(db, searchTerm, filters = {}) {
 }
 
 export async function createProduct(db, product) {
-  return withAdminSession(db, async () => {
+  return withManagementSession(db, async (account) => {
+    await assertCanManageShop(db, account, product.shopId);
     const result = await db.runAsync(
       `INSERT INTO products
         (shop_id, name, brand, category, price_lkr_cents, available)
@@ -210,7 +235,9 @@ export async function createProduct(db, product) {
 }
 
 export async function updateProduct(db, productId, product) {
-  return withAdminSession(db, async () => {
+  return withManagementSession(db, async (account) => {
+    await assertCanManageProduct(db, account, productId);
+    await assertCanManageShop(db, account, product.shopId);
     const result = await db.runAsync(
       `UPDATE products
        SET shop_id = ?, name = ?, brand = ?, category = ?,
@@ -229,7 +256,8 @@ export async function updateProduct(db, productId, product) {
 }
 
 export async function deleteProduct(db, productId) {
-  return withAdminSession(db, async () => {
+  return withManagementSession(db, async (account) => {
+    await assertCanManageProduct(db, account, productId);
     const result = await db.runAsync('DELETE FROM products WHERE id = ?', productId);
     return result.changes;
   });
