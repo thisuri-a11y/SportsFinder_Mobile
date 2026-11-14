@@ -386,6 +386,7 @@ const styles = StyleSheet.create({
     lineHeight: 36,
   },
   screenSubtitle: {
+    ...type.body,
     color: colors.muted,
     fontSize: 15,
     lineHeight: 22,
@@ -410,9 +411,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   textActionLabel: {
+    ...type.emphasis,
     color: colors.green,
     fontSize: 14,
-    fontWeight: '700',
   },
   button: {
     alignItems: 'center',
@@ -436,9 +437,9 @@ const styles = StyleSheet.create({
     opacity: 0.78,
   },
   buttonLabel: {
+    ...type.emphasis,
     color: colors.surface,
     fontSize: 15,
-    fontWeight: '800',
   },
   buttonSecondaryLabel: {
     color: colors.forest,
@@ -459,6 +460,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   searchInput: {
+    ...type.body,
     color: colors.ink,
     flex: 1,
     fontSize: 16,
@@ -470,15 +472,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   fieldLabel: {
+    ...type.emphasis,
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '700',
     marginBottom: 6,
   },
   formField: {
     gap: 2,
   },
   formInput: {
+    ...type.body,
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: 12,
@@ -497,6 +500,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
   },
   fieldError: {
+    ...type.body,
     color: colors.danger,
     fontSize: 12,
     lineHeight: 17,
@@ -514,6 +518,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   selectValue: {
+    ...type.body,
     color: colors.ink,
     flex: 1,
     fontSize: 15,
@@ -542,12 +547,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mint,
   },
   selectOptionText: {
+    ...type.body,
     color: colors.ink,
     fontSize: 14,
   },
   selectOptionSelectedText: {
+    ...type.emphasis,
     color: colors.forest,
-    fontWeight: '800',
   },
   chipRow: {
     alignItems: 'center',
@@ -570,9 +576,9 @@ const styles = StyleSheet.create({
     borderColor: colors.forest,
   },
   filterChipText: {
+    ...type.emphasis,
     color: colors.muted,
     fontSize: 14,
-    fontWeight: '700',
   },
   filterChipSelectedText: {
     color: colors.forest,
