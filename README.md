@@ -1,24 +1,39 @@
-# SportFinder Mobile
+# SportFinder Mobile (JavaScript / JSX)
 
-A React Native mobile application built with Expo SDK 58, Expo Router, and on-device SQLite (`expo-sqlite`) to help users in Sri Lanka find sports equipment and identify local shops stocking items.
+Run all commands from this repository root. This checkout has no `mobile-jsx/` subdirectory. Screens and layouts use `.jsx`; app logic uses JavaScript (`.js`). The database tests use Node's built-in SQLite module and require Node 22.13 or newer.
 
-## Tech Stack
+## Launch and checks
 
-- **Framework**: React Native 0.88 with Expo SDK 58
-- **Routing**: Expo Router (file-based navigation)
-- **Database**: On-device SQLite (`expo-sqlite`)
-- **Language**: JavaScript / JSX
-- **Styling**: SportFinder Theme System
+```sh
+npm install
+npm run lint
+npx expo install --check
+npx expo-doctor
+npm test
+npx expo export --platform android
+npx expo export --platform ios
+npx expo start
+```
 
-## Local database
+`npm test` reruns the SQLite integration tests for migrations/seeding, product filters, validation, admin-only writes, cascading deletes, and data/session persistence after reopening the database.
 
-The app opens `sportfinder.db` and runs transactional migrations before rendering
-the router. Migrations are tracked with SQLite's `user_version`; the first
-migration creates the districts, shops, and products tables and seeds 25 Sri
-Lankan districts with fictional sample shops and equipment. Later launches keep
-user edits and deletions because the seed only runs in the initial migration.
+For a local installed Android release build with its JavaScript bundle embedded (requires Android SDK and a connected device or emulator):
 
-The repository functions in `src/db/repository.js` take the initialized database
-as their first argument. Product prices are integer LKR cents (for example,
-LKR 1,250.00 is stored as `125000`), and `available` is `1` for in stock or `0`
-for out of stock.
+```sh
+npx expo run:android --variant release --no-bundler
+```
+
+On macOS with Xcode, use `npx expo run:ios --configuration Release --no-bundler`. Debug launches with `npx expo start` need Metro and are not an airplane-mode check. An Expo export verifies the platform JavaScript bundle only; it does not install or launch the app.
+
+## Local accounts and data
+
+On first launch, choose **Set up the admin** and create a local username (3–32 characters) and password (at least 8 characters). The admin can add shops and equipment from **Manage**. To create a browsing account, sign out and choose **Create user account** on the login screen.
+
+The app stores data in the device-local `sportfinder.db` SQLite database. It contains the district, shop, and equipment catalogue, salted scrypt password hashes in `accounts`, and the active account ID in `local_session`. Prices are stored as integer LKR cents. Initial migrations seed sample records once; later launches do not reseed deleted or edited records. The app has no server sync, so the installed release can read and write its local data offline.
+
+## Verification status
+
+- **Features completed:** local sign-in, browsing screens, admin-only shop/equipment management, local SQLite persistence, and shared query refresh after writes.
+- **Checks passed:** `npm run lint`; `npx expo install --check`; `npx expo-doctor` (20/20); `npm test` (6 tests); Android and iOS `expo export` bundles.
+- **Devices or emulators used:** none. Checks ran on Windows with Node v24.13.1; `adb` is unavailable and iOS builds require macOS/Xcode.
+- **Still pending:** install a bundled release on Android and iOS, stop Metro, cold-start and exercise sign-in/search/admin writes in airplane mode, force-close/reopen and verify saved edits and deletions on-device, and test the `tel:` action on a phone-capable device with a number you control.
