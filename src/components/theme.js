@@ -15,6 +15,18 @@ export const colors = {
 };
 
 export const type = {
+  body: {
+    fontFamily: 'Exo2-Regular',
+    fontWeight: '400',
+  },
+  emphasis: {
+    fontFamily: 'Exo2-SemiBold',
+    fontWeight: '400',
+  },
+  title: {
+    fontFamily: 'Audiowide-Regular',
+    fontWeight: '400',
+  },
   display: {
     fontFamily: Platform.select({ ios: 'Avenir Next Condensed', android: 'sans-serif-condensed', web: '"Arial Narrow", "Roboto Condensed", system-ui, sans-serif' }),
     fontWeight: '800',

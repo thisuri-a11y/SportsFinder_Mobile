@@ -1,14 +1,23 @@
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { DatabaseGate } from '../db/DatabaseGate';
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    'Exo2-Regular': require('../../assets/fonts/Exo2-Regular.ttf'),
+    'Exo2-SemiBold': require('../../assets/fonts/Exo2-SemiBold.ttf'),
+    'Audiowide-Regular': require('../../assets/fonts/Audiowide-Regular.ttf'),
+  });
+
   return (
     <DatabaseGate>
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
+      {(fontsLoaded || fontError) && (
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      )}
     </DatabaseGate>
   );
 }
