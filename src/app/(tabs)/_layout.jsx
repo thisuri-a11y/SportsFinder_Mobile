@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router';
+import { useAuth } from '../../auth/AuthProvider';
 import { colors } from '../../components/theme';
 
 export default function TabsLayout() {
+  const { account } = useAuth();
+
   return (
     <Tabs
       id="main-tabs"
@@ -29,6 +32,9 @@ export default function TabsLayout() {
       <Tabs.Screen name="find" options={{ title: 'Find Gear' }} />
       <Tabs.Screen name="shops" options={{ title: 'Shops' }} />
       <Tabs.Screen name="catalogue" options={{ title: 'Catalogue' }} />
+      {account?.role === 'admin' ? (
+        <Tabs.Screen name="manage" options={{ title: 'Manage' }} />
+      ) : null}
     </Tabs>
   );
 }
