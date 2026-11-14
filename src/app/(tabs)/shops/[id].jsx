@@ -35,6 +35,10 @@ export default function ShopDetailsScreen() {
   }, [database, shopId]);
   const { data, error, isLoading, retry } = useDatabaseQuery(loadShop);
 
+  function backToShops() {
+    router.dismissTo('/shops');
+  }
+
   async function callShop() {
     if (!data?.shop?.phone) {
       return;
@@ -57,18 +61,18 @@ export default function ShopDetailsScreen() {
           empty={false}
           onRetry={retry}
         />
-        <AppButton label="Back to shops" secondary onPress={() => router.replace('/shops')} />
+        <AppButton label="Back to shops" secondary onPress={backToShops} />
       </ScreenContainer>
     );
   }
 
   return (
     <ScreenContainer>
+      <AppButton label="‹  Back to shops" accessibilityLabel="Back to shops" secondary onPress={backToShops} style={styles.backButton} />
       {isLoading ? (
         <QueryStatus isLoading error={null} empty={false} onRetry={retry} />
       ) : (
         <>
-          <AppButton label="‹  Back to shops" secondary onPress={() => router.back()} style={styles.backButton} />
           <ScreenTitle
             eyebrow={data.shop.district_name}
             title={data.shop.shop_name}
