@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { AppButton, FilterChip, FilterChipRow, ProductCard, QueryStatus, ScreenContainer, ScreenTitle, SectionTitle, ShopCard } from '../../components/browse-ui';
+import { SportsArt } from '../../components/SportsArt';
 import { colors } from '../../components/theme';
 import { useDatabase } from '../../db/DatabaseGate';
 import { listCategories, listDistricts, listProducts, listShops } from '../../db/repository';
@@ -43,15 +44,16 @@ export default function HomeScreen() {
       />
 
       <View style={styles.hero}>
-        <View style={styles.heroCopy}>
-          <View style={styles.heroTag}><Text style={styles.heroTagText}>LOCAL SHOPS · LIVE STOCK</Text></View>
+        <View style={styles.heroTop}>
           <Text style={styles.heroTitle}>Get ready for your next game.</Text>
-          <Text style={styles.heroSubtitle}>
-            Browse equipment by sport, district, or the name of the gear you need.
-          </Text>
+          <SportsArt variant="table-tennis" style={styles.heroArt} />
         </View>
+        <Text style={styles.heroSubtitle}>
+          Browse equipment by sport, district, or the name of the gear you need.
+        </Text>
         <AppButton
           label="Find gear"
+          secondary
           onPress={() => router.push('/find')}
           style={styles.heroButton}
         />
@@ -148,47 +150,38 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: colors.forest,
     borderRadius: 24,
+    gap: 12,
+    padding: 20,
+  },
+  heroTop: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 18,
+    gap: 8,
     justifyContent: 'space-between',
-    padding: 24,
   },
-  heroCopy: {
-    flex: 1,
-    minWidth: 230,
-  },
-  heroTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.green,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
-  heroTagText: {
-    color: colors.surface,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+  heroArt: {
+    marginVertical: -8,
   },
   heroTitle: {
     color: colors.surface,
     fontSize: 27,
     fontWeight: '800',
     lineHeight: 34,
-    marginTop: 14,
-    maxWidth: 520,
+    flexGrow: 1,
+    flexBasis: 145,
+    maxWidth: 375,
   },
   heroSubtitle: {
     color: '#E2EEE7',
     fontSize: 14,
     lineHeight: 21,
-    marginTop: 8,
     maxWidth: 560,
   },
   heroButton: {
-    alignSelf: 'flex-end',
     backgroundColor: colors.amber,
+    borderColor: colors.amber,
     minWidth: 140,
   },
   helperText: {
