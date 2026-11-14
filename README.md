@@ -1,50 +1,108 @@
-# SportFinder Mobile (JavaScript / JSX)
+# SportFinder Mobile
 
-Run all commands from this repository root. This checkout has no `mobile-jsx/` subdirectory. Screens and layouts use `.jsx`; app logic uses JavaScript (`.js`). The database tests use Node's built-in SQLite module and require Node 22.13 or newer.
+SportFinder helps buyers find sports equipment in Sri Lanka by district, sport, brand, or shop. Buyers can check prices and availability before visiting a shop, while shop owners can maintain their listings on the same installation. The app uses a local SQLite database so searching, signing in, and managing inventory work without internet access in an installed release.
 
-## Launch and checks
+## Key features
 
-```sh
-npm install
-npm run lint
-npx expo install --check
-npx expo-doctor
-npm test
-npx expo export --platform android
-npx expo export --platform ios
-npx expo start
-```
-
-`npm test` covers migrations and seeding, catalogue filters, form validation, role and ownership checks, cascading deletes, and data and session persistence.
-
-For a local installed Android release build with its JavaScript bundle embedded (requires Android SDK and a connected device or emulator):
-
-```sh
-npx expo run:android --variant release --no-bundler
-```
-
-On macOS with Xcode, use `npx expo run:ios --configuration Release --no-bundler`. Debug launches with `npx expo start` need Metro and are not an airplane-mode check. An Expo export verifies the platform JavaScript bundle only; it does not install or launch the app.
-
-## Local accounts and data
-
-Use **Create buyer account** or **Create shop owner account** to register with a local username (3–32 characters) and password (at least 8 characters). Admins sign in through the same form.
+- **Find gear:** Search by product, brand, sport, or shop and filter by district. The catalogue can show in-stock items only.
+- **Shop directory:** View each shop's address, phone number, and equipment. On a supported phone, the call button opens the dialer.
+- **Inventory management:** Add, edit, and delete shops and equipment. Listings show prices in Sri Lankan rupees (LKR) and stock availability. Saved changes appear in the local catalogue.
+- **Local accounts:** Buyers and shop owners can register in the app. Admins use the same sign-in form with an existing account.
 
 | Role | Access |
 | --- | --- |
-| Buyer | Browse and search the full catalogue, including shops and equipment added by owners. |
-| Shop owner | Browse the catalogue and use **Manage** to add, edit, or delete their own shops and equipment. |
-| Admin | Browse the catalogue and use **Manage** to add, edit, or delete listings across all shops. |
+| Buyer | Browse and search all shops and equipment on the installation. |
+| Shop owner | Browse the catalogue and add, edit, or delete their own shops and equipment. |
+| Admin | Browse the catalogue and manage listings across all shops. |
 
-A fresh installation includes three demo logins. Each uses the local demo password `SportFinderDemo1!`.
+## Screenshots
 
-| Username | Demo role |
+These screenshots show the running web preview at a phone-sized viewport.
+
+| Sign-in and registration | Buyer gear search |
 | --- | --- |
-| `demo-buyer` | Buyer |
-| `demo-owner` | Shop owner of the seeded Lion City Sports shop and its equipment |
-| `demo-admin` | Admin |
+| <img src="docs/screenshots/sportfinder-login.png" alt="SportFinder sign-in screen with buyer and shop owner registration options" width="270"> | <img src="docs/screenshots/sportfinder-buyer-search.png" alt="Buyer search result showing a football listing, price, availability, and shop" width="270"> |
 
-The version 4 migration upgrades existing browsing accounts to buyers and keeps existing admins, passwords, sessions, and inventory. If the database already has an admin, it keeps that admin as the sign-in account rather than adding a demo admin. Existing shops remain available for admin management. New shops created by an owner are assigned to that account automatically.
+| Shop owner management | Admin management |
+| --- | --- |
+| <img src="docs/screenshots/sportfinder-shop-owner.png" alt="Shop owner Manage screen showing their shop and equipment with edit and delete controls" width="270"> | <img src="docs/screenshots/sportfinder-admin.png" alt="Admin Manage screen showing listings across several shops" width="270"> |
 
-The app stores data in the device-local `sportfinder.db` SQLite database. It contains the district, shop, and equipment catalogue, salted scrypt password hashes in `accounts`, and the active account ID in `local_session`. Prices are stored as integer LKR cents. Initial migrations seed sample records once; later launches do not reseed deleted or edited records. The app has no server sync, so the installed release can read and write its local data offline.
+## Technologies used
 
-For an on-device offline check, install an Android or iOS release, stop Metro, and launch the app in airplane mode. Try signing in with each role, searching for gear, and managing a listing. Force-close the app and reopen it to check that the session and changes persist.
+| Technology | Purpose |
+| --- | --- |
+| JavaScript and JSX, React 19, React Native 0.88 | App logic and screens |
+| Expo SDK 58 and Expo Router | Android, iOS, and web builds and navigation |
+| SQLite via `expo-sqlite` | Local catalogue, accounts, sessions, and database migrations |
+| `expo-crypto` and `@noble/hashes` | Password salts and scrypt password hashing |
+| Node.js, npm, and ESLint | Local web preview, database tests, dependencies, and linting |
+
+## Project structure
+
+```text
+SportsFinder_Mobile/
+├── assets/                 App icons and splash screen artwork
+├── docs/screenshots/       Screenshots used in this README
+├── scripts/serve-web.cjs   Local server for the exported web app
+├── src/
+│   ├── app/                Expo Router screens and layouts
+│   │   ├── login.jsx       Sign-in and account registration
+│   │   └── (tabs)/         Home, gear search, shops, catalogue, and management
+│   ├── auth/               Accounts, password checks, and local sessions
+│   ├── components/         Shared UI and theme
+│   ├── db/                 SQLite setup, migrations, queries, and permissions
+│   ├── hooks/              Query loading and refresh after changes
+│   └── utils/              Shop and product form validation
+├── tests/database.test.mjs SQLite integration tests
+├── app.json                Expo configuration
+└── package.json            Dependencies and npm commands
+```
+
+## Installation and setup
+
+Use Node.js 24.3 or newer within the Node 24 release line, with npm. For the web preview, use a recent desktop browser such as Edge or Chrome. Native builds require the Android SDK or macOS with Xcode.
+
+1. Clone the repository and install the locked dependencies:
+
+   ```sh
+   git clone https://github.com/thisuri-a11y/SportsFinder_Mobile.git
+   cd SportsFinder_Mobile
+   npm ci
+   ```
+
+2. Build and serve the web preview:
+
+   ```sh
+   npm run web:preview
+   ```
+
+3. Open `http://localhost:8083` and sign in with a demo account or register as a buyer or shop owner. Use one preview tab at a time so SQLite can open its database.
+
+### Demo accounts
+
+On a fresh installation, all three demo accounts use the password `SportFinderDemo1!`.
+
+| Username | What to try |
+| --- | --- |
+| `demo-buyer` | Search for gear and view a shop's inventory. |
+| `demo-owner` | Open **Manage** to see the seeded Lion City Sports shop and its equipment. |
+| `demo-admin` | Open **Manage** to see and edit listings across all shops. |
+
+### Native builds and checks
+
+For development, run `npm start` to start Expo's development server. To install and run a release with the JavaScript bundle included, connect an Android device or start an emulator, or use macOS with Xcode for iOS. Run the command for your platform:
+
+```sh
+npx expo run:android --variant release --no-bundler
+npx expo run:ios --configuration Release --no-bundler
+```
+
+Run `npm run lint` and `npm test` to check the source and exercise SQLite migrations, role permissions, ownership, catalogue filtering, and persistence.
+
+## Offline storage and upgrades
+
+The app creates `sportfinder.db` when it first runs. The seed includes Sri Lankan districts, sample shops and equipment, and demo accounts. SQLite stores price values as integer LKR cents, account passwords as salted scrypt hashes, and the current sign-in session. New listings and edits are saved on that installation. There is no server or cross-device sync, so a buyer sees an owner's changes when using the same installation.
+
+The version 4 migration converts existing browsing accounts to buyers and preserves account IDs, passwords, sessions, and inventory. An existing admin stays in place. Deleting a shop also removes its equipment listings.
+
+To check offline behavior on a phone, install a release build, turn on airplane mode, and open the app with Metro stopped. Sign in, search for gear, and save a listing as an owner or admin. Close and reopen the app to check that the session and listing persist. Placing a call still requires phone service.
