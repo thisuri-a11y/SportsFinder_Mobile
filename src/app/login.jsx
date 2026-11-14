@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthProvider';
+import { SportsArt } from '../components/SportsArt';
 import { colors } from '../components/theme';
 
 const ACCOUNT_TYPES = [
@@ -83,10 +84,10 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.card}>
-            <View style={styles.brandMark}>
-              <Text style={styles.brandMarkText}>S</Text>
+            <View style={styles.banner}>
+              <Text style={styles.brand}>SportFinder</Text>
+              <SportsArt style={styles.bannerArt} />
             </View>
-            <Text style={styles.brand}>SportFinder</Text>
             <Text accessibilityRole="header" style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>
               Find sports equipment across Sri Lanka.
@@ -237,40 +238,38 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
   },
-  brandMark: {
-    alignItems: 'center',
-    alignSelf: 'center',
+  banner: {
     backgroundColor: colors.forest,
-    borderRadius: 18,
-    height: 54,
+    borderRadius: 16,
     justifyContent: 'center',
-    marginBottom: 10,
-    width: 54,
+    minHeight: 102,
+    overflow: 'hidden',
+    paddingVertical: 16,
+    paddingLeft: 16,
+    paddingRight: 106,
   },
-  brandMarkText: {
-    color: colors.surface,
-    fontSize: 30,
-    fontWeight: '800',
+  bannerArt: {
+    position: 'absolute',
+    right: -8,
+    top: -7,
+    transform: [{ scale: 0.85 }],
   },
   brand: {
-    color: colors.forest,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
+    color: colors.surface,
+    fontSize: 23,
+    fontWeight: '800',
   },
   title: {
     color: colors.ink,
     fontSize: 25,
     fontWeight: '800',
-    marginTop: 24,
-    textAlign: 'center',
+    marginTop: 19,
   },
   subtitle: {
     color: colors.muted,
     fontSize: 14,
     marginTop: 7,
     marginBottom: 14,
-    textAlign: 'center',
   },
   roleList: {
     gap: 8,
@@ -287,6 +286,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     borderWidth: 1,
+    backgroundColor: colors.background,
     padding: 12,
   },
   roleSelected: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: 'center',
-    backgroundColor: colors.forest,
+    backgroundColor: colors.green,
     borderRadius: 14,
     justifyContent: 'center',
     marginTop: 20,
