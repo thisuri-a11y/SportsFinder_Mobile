@@ -1,0 +1,168 @@
+import * as Crypto from 'expo-crypto';
+import { bytesToHex } from '@noble/hashes/utils.js';
+import { scryptAsync } from '@noble/hashes/scrypt.js';
+
+const SALT_BYTES = 16;
+const SCRYPT_OPTIONS = {
+  N: 2 ** 14,
+  r: 8,
+  p: 1,
+  dkLen: 32,
+  maxmem: 64 * 1024 * 1024,
+  asyncTick: 10,
+};
+
+const PUBLIC_ACCOUNT_COLUMNS = 'id, username, role, created_at';
+
+function characterCount(value) {
+  return Array.from(value).length;
+}
+
+function normalizeUsername(value) {
+  if (typeof value !== 'string') {
+    throw new Error('Enter a username.');
+  }
+
+  const username = value.trim();
+  const length = characterCount(username);
+  if (length < 3 || length > 32 || username.includes('\0')) {
+    throw new Error('Usernames must be 3–32 characters.');
+  }
+
+  return username;
+}
+
+function validateNewPassword(value) {
+  if (typeof value !== 'string' || characterCount(value) < 8) {
+    throw new Error('New passwords must be at least 8 characters.');
+  }
+  return value;
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function hashesMatch(first, second) {
+  if (first.length !== second.length) {
+    return false;
+  }
+
+  let difference = 0;
+  for (let index = 0; index < first.length; index += 1) {
+    difference |= first.charCodeAt(index) ^ second.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+async function makePasswordHash(password) {
+  const salt = await Crypto.getRandomBytesAsync(SALT_BYTES);
+  const hash = await scryptAsync(password, salt, SCRYPT_OPTIONS);
+  return {
+    passwordHash: bytesToHex(hash),
+    passwordSalt: bytesToHex(salt),
+  };
+}
+
+function isUniqueConstraintError(error) {
+  return /unique constraint failed|accounts_.*_idx/i.test(error?.message ?? '');
+}
+
+async function insertAccount(db, username, password, role) {
+  const normalizedUsername = username.toLowerCase();
+  const { passwordHash, passwordSalt } = await makePasswordHash(password);
+
+  try {
+    const result = await db.runAsync(
+      `INSERT INTO accounts
+        (username, username_key, password_hash, password_salt, role)
+       VALUES (?, ?, ?, ?, ?)`,
+      username,
+      normalizedUsername,
+      passwordHash,
+      passwordSalt,
+      role,
+    );
+    return getAccountById(db, result.lastInsertRowId);
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      if (role === 'admin' && /accounts\.role|single_admin/i.test(error.message)) {
+        throw new Error('An admin account has already been set up on this installation.');
+      }
+      throw new Error('That username is already in use.');
+    }
+    throw error;
+  }
+}
+
+export async function hasAdminAccount(db) {
+  const row = await db.getFirstAsync(
+    "SELECT 1 AS present FROM accounts WHERE role = 'admin' LIMIT 1",
+  );
+  return Boolean(row);
+}
+
+export async function createAdminAccount(db, credentials) {
+  const username = normalizeUsername(credentials?.username);
+  const password = validateNewPassword(credentials?.password);
+
+  if (await hasAdminAccount(db)) {
+    throw new Error('An admin account has already been set up on this installation.');
+  }
+
+  return insertAccount(db, username, password, 'admin');
+}
+
+export async function createBrowsingAccount(db, credentials) {
+  const username = normalizeUsername(credentials?.username);
+  const password = validateNewPassword(credentials?.password);
+  return insertAccount(db, username, password, 'browsing');
+}
+
+export async function authenticateAccount(db, credentials) {
+  const username = normalizeUsername(credentials?.username);
+  const password = credentials?.password;
+
+  if (typeof password !== 'string' || password.length === 0) {
+    throw new Error('Enter your password.');
+  }
+
+  const account = await db.getFirstAsync(
+    `SELECT ${PUBLIC_ACCOUNT_COLUMNS}, password_hash, password_salt
+     FROM accounts
+     WHERE username = ? COLLATE NOCASE
+        OR username_key = ? COLLATE NOCASE
+     LIMIT 1`,
+    username,
+    username.toLowerCase(),
+  );
+
+  if (!account) {
+    throw new Error('Username or password is incorrect.');
+  }
+
+  const candidateHash = bytesToHex(
+    await scryptAsync(password, hexToBytes(account.password_salt), SCRYPT_OPTIONS),
+  );
+  if (!hashesMatch(candidateHash, account.password_hash)) {
+    throw new Error('Username or password is incorrect.');
+  }
+
+  return {
+    id: account.id,
+    username: account.username,
+    role: account.role,
+    created_at: account.created_at,
+  };
+}
+
+export function getAccountById(db, accountId) {
+  return db.getFirstAsync(
+    `SELECT ${PUBLIC_ACCOUNT_COLUMNS} FROM accounts WHERE id = ?`,
+    accountId,
+  );
+}
