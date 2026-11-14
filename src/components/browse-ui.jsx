@@ -68,11 +68,11 @@ export function SectionTitle({ title, actionLabel = null, onAction = null }) {
   );
 }
 
-export function AppButton({ label, onPress, secondary = false, disabled = false, style = null }) {
+export function AppButton({ label, accessibilityLabel = label, onPress, secondary = false, disabled = false, style = null }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       disabled={disabled}
       hitSlop={4}
       onPress={onPress}
@@ -194,12 +194,12 @@ export function SelectField({ label, value, options, onChange }) {
   );
 }
 
-export function FilterChip({ label, selected = false, onPress }) {
+export function FilterChip({ label, accessibilityLabel = label, selected = false, onPress }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       hitSlop={3}
       onPress={onPress}
       style={({ pressed }) => [

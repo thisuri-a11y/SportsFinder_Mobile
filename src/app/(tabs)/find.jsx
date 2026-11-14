@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { AppButton, FilterChip, FilterChipRow, ProductCard, QueryStatus, ScreenContainer, ScreenTitle, SearchField, SelectField } from '../../components/browse-ui';
+import { FilterChip, ProductCard, QueryStatus, ScreenContainer, ScreenTitle, SearchField, SelectField } from '../../components/browse-ui';
+import { StyleSheet, View } from 'react-native';
 import { listDistricts, listProducts } from '../../db/repository';
 import { useDatabase } from '../../db/DatabaseGate';
 import { useDatabaseQuery } from '../../hooks/useDatabaseQuery';
@@ -16,17 +17,19 @@ export default function FindScreen() {
   const { district: districtParam } = useLocalSearchParams();
   const district = getParam(districtParam) || ALL_DISTRICTS;
   const [keyword, setKeyword] = useState('');
+  const searchTerm = keyword.trim();
+  const hasDistrict = district !== ALL_DISTRICTS;
 
   const loadFindResults = useCallback(async () => {
     const [districts, products] = await Promise.all([
       listDistricts(database),
       listProducts(database, {
-        districtName: district === ALL_DISTRICTS ? undefined : district,
-        search: keyword,
+        districtName: hasDistrict ? district : undefined,
+        search: searchTerm,
       }),
     ]);
     return { districts, products };
-  }, [database, district, keyword]);
+  }, [database, district, hasDistrict, searchTerm]);
   const { data, error, isLoading, retry } = useDatabaseQuery(loadFindResults);
   const districtOptions = [ALL_DISTRICTS, ...(data?.districts.map((item) => item.name) ?? [])];
 
@@ -62,21 +65,25 @@ export default function FindScreen() {
         onChange={selectDistrict}
       />
 
-      <FilterChipRow>
-        <FilterChip
-          label={ALL_DISTRICTS}
-          selected={district === ALL_DISTRICTS}
-          onPress={() => selectDistrict(ALL_DISTRICTS)}
-        />
-        {data?.districts.slice(0, 5).map((item) => (
-          <FilterChip
-            key={item.id}
-            label={item.name}
-            selected={district === item.name}
-            onPress={() => selectDistrict(item.name)}
-          />
-        ))}
-      </FilterChipRow>
+      {(searchTerm || hasDistrict) ? (
+        <View style={styles.activeFilters}>
+          {searchTerm ? (
+            <FilterChip
+              label={`${searchTerm.length > 30 ? searchTerm.slice(0, 30) + '…' : searchTerm} ×`}
+              accessibilityLabel="Remove keyword filter"
+              selected
+              onPress={() => setKeyword('')}
+            />
+          ) : null}
+          {hasDistrict && (
+            <FilterChip label={`${district} ×`} accessibilityLabel={`Remove district filter: ${district}`} selected onPress={() => selectDistrict(ALL_DISTRICTS)} />
+          )}
+          <FilterChip label="Clear all" accessibilityLabel="Clear all filters" onPress={() => {
+            setKeyword('');
+            selectDistrict(ALL_DISTRICTS);
+          }} />
+        </View>
+      ) : null}
 
       <ScreenTitle
         title={data ? `${data.products.length} ${data.products.length === 1 ? 'result' : 'results'}` : 'Results'}
@@ -88,24 +95,27 @@ export default function FindScreen() {
         error={error}
         empty={empty}
         emptyTitle="No matching gear found"
-        emptyMessage={keyword.trim()
-          ? `No results for “${keyword.trim()}”. Try another keyword or district.`
+        emptyMessage={searchTerm
+          ? `No results for “${searchTerm}”. Try another keyword or district.`
           : 'Try another district or clear your filters.'}
         onRetry={retry}
       />
 
-      {data && !error && data.products.length > 0 ? (
-        <>
-          {data.products.map((product) => (
-            <ProductCard
-              key={product.product_id}
-              product={product}
-              onShopPress={() => openShop(product.shop_id)}
-            />
-          ))}
-          <AppButton label="Clear keyword" secondary onPress={() => setKeyword('')} />
-        </>
-      ) : null}
+      {data?.products.map((product) => (
+        <ProductCard
+          key={product.product_id}
+          product={product}
+          onShopPress={() => openShop(product.shop_id)}
+        />
+      ))}
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  activeFilters: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+});
