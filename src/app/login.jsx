@@ -255,18 +255,18 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.85 }],
   },
   brand: {
-    ...type.display,
+    ...type.title,
     color: colors.surface,
-    fontSize: 23,
-    fontWeight: '800',
+    fontSize: 19,
   },
   title: {
-    ...type.display,
+    ...type.title,
     color: colors.ink,
     fontSize: 25,
     marginTop: 19,
   },
   subtitle: {
+    ...type.body,
     color: colors.muted,
     fontSize: 14,
     marginTop: 7,
@@ -300,6 +300,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   roleDescription: {
+    ...type.body,
     color: colors.muted,
     fontSize: 13,
     marginTop: 3,
@@ -323,13 +324,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.forest,
   },
   label: {
+    ...type.emphasis,
     color: colors.ink,
     fontSize: 14,
-    fontWeight: '700',
     marginBottom: 7,
     marginTop: 12,
   },
   input: {
+    ...type.body,
     backgroundColor: colors.background,
     borderColor: colors.border,
     borderRadius: 12,
@@ -348,6 +350,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   passwordInput: {
+    ...type.body,
     flex: 1,
     minWidth: 0,
     minHeight: 48,
@@ -364,6 +367,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
   },
   error: {
+    ...type.body,
     color: colors.danger,
     fontSize: 14,
     lineHeight: 20,
@@ -378,9 +382,9 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   submitButtonText: {
+    ...type.emphasis,
     color: colors.surface,
     fontSize: 16,
-    fontWeight: '700',
   },
   pressed: {
     opacity: 0.82,
@@ -398,11 +402,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   linkText: {
+    ...type.emphasis,
     color: colors.forest,
     fontSize: 14,
-    fontWeight: '700',
   },
   hint: {
+    ...type.body,
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,

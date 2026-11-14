@@ -55,8 +55,8 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.forest,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: {
-          ...type.label,
-          fontSize: 10,
+          ...type.emphasis,
+          fontSize: 11,
         },
         tabBarStyle: {
           backgroundColor: colors.surface,
@@ -104,10 +104,9 @@ const styles = StyleSheet.create({
     width: 32,
   },
   wordmark: {
-    ...type.display,
+    ...type.title,
     color: colors.surface,
-    fontSize: 22,
-    fontStyle: 'italic',
+    fontSize: 20,
   },
   icon: {
     alignItems: 'center',
