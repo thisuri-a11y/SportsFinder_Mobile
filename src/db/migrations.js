@@ -340,10 +340,37 @@ async function createInitialSchema(db) {
   }
 }
 
+async function createAuthSchema(db) {
+  await db.execAsync(`
+    CREATE TABLE accounts (
+      id INTEGER PRIMARY KEY NOT NULL,
+      username TEXT NOT NULL COLLATE NOCASE UNIQUE
+        CHECK (length(username) BETWEEN 3 AND 32 AND username = trim(username)),
+      username_key TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      password_hash TEXT NOT NULL
+        CHECK (length(password_hash) = 64 AND password_hash NOT GLOB '*[^0-9a-f]*'),
+      password_salt TEXT NOT NULL
+        CHECK (length(password_salt) = 32 AND password_salt NOT GLOB '*[^0-9a-f]*'),
+      role TEXT NOT NULL CHECK (role IN ('admin', 'browsing')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE UNIQUE INDEX accounts_single_admin_idx
+      ON accounts(role) WHERE role = 'admin';
+
+    CREATE TABLE local_session (
+      singleton_id INTEGER PRIMARY KEY NOT NULL CHECK (singleton_id = 1),
+      account_id INTEGER NOT NULL UNIQUE,
+      FOREIGN KEY (account_id) REFERENCES accounts(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+    );
+  `);
+}
+
 export async function migrateDatabase(db) {
   const versionResult = await db.getFirstAsync('PRAGMA user_version');
   const currentVersion = versionResult?.user_version ?? 0;
-  const latestVersion = 1;
+  const latestVersion = 2;
 
   if (currentVersion > latestVersion) {
     throw new Error('This database was created by a newer version of SportFinder.');
@@ -357,6 +384,11 @@ export async function migrateDatabase(db) {
     if (currentVersion < 1) {
       await createInitialSchema(db);
       await db.execAsync('PRAGMA user_version = 1');
+    }
+
+    if (currentVersion < 2) {
+      await createAuthSchema(db);
+      await db.execAsync('PRAGMA user_version = 2');
     }
   });
 }
