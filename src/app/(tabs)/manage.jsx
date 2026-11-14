@@ -203,6 +203,8 @@ export default function ManageScreen() {
   }
 
   const districtNames = data.districts.map((district) => district.name);
+  const hasShops = data.shops.length > 0;
+  const hasProducts = data.products.length > 0;
   const shopOptions = data.shops.map((shop) => `${shop.shop_id}: ${shop.shop_name}`);
   const selectedShopOption = shopOptions.find((option) => option.startsWith(`${productForm?.shopId}: `)) ?? '';
 
@@ -238,7 +240,10 @@ export default function ManageScreen() {
       ) : null}
 
       <View style={styles.section}>
-        <SectionTitle title="Shops" actionLabel="Add shop" onAction={() => startShopEditor()} />
+        <SectionTitle title="Shops" actionLabel={hasShops ? 'Add shop' : null} onAction={() => startShopEditor()} />
+        {!hasShops && !shopEditor && (
+          <AppButton label="Add your first shop" onPress={() => startShopEditor()} />
+        )}
         {shopEditor && shopForm ? (
           <View style={styles.editorCard}>
             <Text style={styles.editorTitle}>{shopEditor.id ? 'Edit shop' : 'Add a shop'}</Text>
@@ -256,73 +261,73 @@ export default function ManageScreen() {
           </View>
         ) : null}
 
-        {data.shops.length > 0 ? data.shops.map((shop) => (
+        {data.shops.map((shop) => (
           <View key={shop.shop_id} style={styles.recordCard}>
             <ShopCard shop={shop} />
             <View style={styles.actionRow}>
-              <AppButton label={`Edit ${shop.shop_name}`} secondary disabled={busy} onPress={() => startShopEditor(shop)} style={styles.actionButton} />
-              <AppButton label={`Delete ${shop.shop_name}`} secondary disabled={busy} onPress={() => requestDelete('shop', shop)} style={[styles.actionButton, styles.deleteOutline]} />
+              <AppButton label="Edit" accessibilityLabel={`Edit ${shop.shop_name}`} secondary disabled={busy} onPress={() => startShopEditor(shop)} style={styles.actionButton} />
+              <AppButton label="Delete" accessibilityLabel={`Delete ${shop.shop_name}`} secondary disabled={busy} onPress={() => requestDelete('shop', shop)} style={[styles.actionButton, styles.deleteOutline]} />
             </View>
           </View>
-        )) : (
-          <Text style={styles.helperText}>No shops yet. Add a shop before listing equipment.</Text>
-        )}
+        ))}
       </View>
 
-      <View style={styles.section}>
-        <SectionTitle
-          title="Equipment"
-          actionLabel={data.shops.length > 0 ? 'Add equipment' : null}
-          onAction={() => startProductEditor()}
-        />
-        {data.shops.length === 0 ? <Text style={styles.helperText}>Add a shop before creating an equipment listing.</Text> : null}
-        {productEditor && productForm ? (
-          <View style={styles.editorCard}>
-            <Text style={styles.editorTitle}>{productEditor.id ? 'Edit equipment' : 'Add equipment'}</Text>
-            <View>
-              <SelectField
-                label="Shop"
-                value={selectedShopOption}
-                options={shopOptions}
-                onChange={(option) => setProductForm((current) => ({ ...current, shopId: option.split(':', 1)[0] }))}
-              />
-              {productErrors.shopId ? <Text accessibilityRole="alert" style={styles.fieldError}>{productErrors.shopId}</Text> : null}
-            </View>
-            <FormField label="Equipment name" value={productForm.name} onChangeText={(name) => setProductForm((current) => ({ ...current, name }))} placeholder="e.g. Match Football" error={productErrors.name} />
-            <FormField label="Brand" value={productForm.brand} onChangeText={(brand) => setProductForm((current) => ({ ...current, brand }))} placeholder="e.g. Nivia" error={productErrors.brand} />
-            <FormField label="Sport or category" value={productForm.category} onChangeText={(category) => setProductForm((current) => ({ ...current, category }))} placeholder="e.g. Football" error={productErrors.category} />
-            <FormField label="Price (LKR)" value={productForm.price} onChangeText={(price) => setProductForm((current) => ({ ...current, price }))} placeholder="1299.50" error={productErrors.price} keyboardType="decimal-pad" autoCapitalize="none" />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="In stock"
-              accessibilityState={{ checked: productForm.available }}
-              onPress={() => setProductForm((current) => ({ ...current, available: !current.available }))}
-              style={styles.stockChoice}
-            >
-              <View style={[styles.checkbox, productForm.available && styles.checkboxSelected]}>
-                {productForm.available ? <Text style={styles.checkboxMark}>✓</Text> : null}
+      {hasShops && (
+        <View style={styles.section}>
+          <SectionTitle
+            title="Equipment"
+            actionLabel={hasProducts ? 'Add equipment' : null}
+            onAction={() => startProductEditor()}
+          />
+          {!hasProducts && !productEditor && (
+            <AppButton label="Add your first product" onPress={() => startProductEditor()} />
+          )}
+          {productEditor && productForm ? (
+            <View style={styles.editorCard}>
+              <Text style={styles.editorTitle}>{productEditor.id ? 'Edit equipment' : 'Add equipment'}</Text>
+              <View>
+                <SelectField
+                  label="Shop"
+                  value={selectedShopOption}
+                  options={shopOptions}
+                  onChange={(option) => setProductForm((current) => ({ ...current, shopId: option.split(':', 1)[0] }))}
+                />
+                {productErrors.shopId ? <Text accessibilityRole="alert" style={styles.fieldError}>{productErrors.shopId}</Text> : null}
               </View>
-              <Text style={styles.stockChoiceText}>In stock</Text>
-            </Pressable>
-            <View style={styles.actionRow}>
-              <AppButton label="Cancel" secondary disabled={busy} onPress={closeEditors} style={styles.actionButton} />
-              <AppButton label={busy ? 'Saving…' : 'Save equipment'} disabled={busy} onPress={saveProduct} style={styles.actionButton} />
+              <FormField label="Equipment name" value={productForm.name} onChangeText={(name) => setProductForm((current) => ({ ...current, name }))} placeholder="e.g. Match Football" error={productErrors.name} />
+              <FormField label="Brand" value={productForm.brand} onChangeText={(brand) => setProductForm((current) => ({ ...current, brand }))} placeholder="e.g. Nivia" error={productErrors.brand} />
+              <FormField label="Sport or category" value={productForm.category} onChangeText={(category) => setProductForm((current) => ({ ...current, category }))} placeholder="e.g. Football" error={productErrors.category} />
+              <FormField label="Price (LKR)" value={productForm.price} onChangeText={(price) => setProductForm((current) => ({ ...current, price }))} placeholder="1299.50" error={productErrors.price} keyboardType="decimal-pad" autoCapitalize="none" />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="In stock"
+                accessibilityState={{ checked: productForm.available }}
+                onPress={() => setProductForm((current) => ({ ...current, available: !current.available }))}
+                style={styles.stockChoice}
+              >
+                <View style={[styles.checkbox, productForm.available && styles.checkboxSelected]}>
+                  {productForm.available ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                </View>
+                <Text style={styles.stockChoiceText}>In stock</Text>
+              </Pressable>
+              <View style={styles.actionRow}>
+                <AppButton label="Cancel" secondary disabled={busy} onPress={closeEditors} style={styles.actionButton} />
+                <AppButton label={busy ? 'Saving…' : 'Save equipment'} disabled={busy} onPress={saveProduct} style={styles.actionButton} />
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {data.products.length > 0 ? data.products.map((product) => (
-          <View key={product.product_id} style={styles.recordCard}>
-            <ProductCard product={product} />
-            <View style={styles.actionRow}>
-              <AppButton label={`Edit ${product.product_name}`} secondary disabled={busy} onPress={() => startProductEditor(product)} style={styles.actionButton} />
-              <AppButton label={`Delete ${product.product_name}`} secondary disabled={busy} onPress={() => requestDelete('product', product)} style={[styles.actionButton, styles.deleteOutline]} />
+          {data.products.map((product) => (
+            <View key={product.product_id} style={styles.recordCard}>
+              <ProductCard product={product} />
+              <View style={styles.actionRow}>
+                <AppButton label="Edit" accessibilityLabel={`Edit ${product.product_name}`} secondary disabled={busy} onPress={() => startProductEditor(product)} style={styles.actionButton} />
+                <AppButton label="Delete" accessibilityLabel={`Delete ${product.product_name}`} secondary disabled={busy} onPress={() => requestDelete('product', product)} style={[styles.actionButton, styles.deleteOutline]} />
+              </View>
             </View>
-          </View>
-        )) : (
-          <Text style={styles.helperText}>No equipment is listed yet.</Text>
-        )}
-      </View>
+          ))}
+        </View>
+      )}
     </ScreenContainer>
   );
 }
@@ -449,10 +454,5 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     fontWeight: '700',
-  },
-  helperText: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20,
   },
 });
