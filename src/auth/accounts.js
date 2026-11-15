@@ -155,3 +155,32 @@ export function getAccountById(db, accountId) {
     accountId,
   );
 }
+
+export async function updateAccountPassword(db, account, { currentPassword, newPassword }) {
+  const nextPassword = validateNewPassword(newPassword);
+  if (!currentPassword) {
+    throw new AccountFieldError('currentPassword', 'Enter your current password.');
+  }
+
+  const stored = await db.getFirstAsync(
+    `SELECT a.password_hash, a.password_salt
+     FROM accounts a JOIN local_session s ON s.account_id = a.id
+     WHERE a.id = ? AND s.singleton_id = 1`,
+    account.id,
+  );
+  if (!stored) throw new Error('Sign in again to change your password.');
+
+  const candidate = bytesToHex(await scryptAsync(currentPassword, hexToBytes(stored.password_salt), SCRYPT_OPTIONS));
+  if (!hashesMatch(candidate, stored.password_hash)) {
+    throw new AccountFieldError('currentPassword', 'Current password is incorrect.');
+  }
+
+  const { passwordHash, passwordSalt } = await makePasswordHash(nextPassword);
+  const { changes } = await db.runAsync(
+    `UPDATE accounts SET password_hash = ?, password_salt = ?
+     WHERE id = ? AND password_hash = ? AND password_salt = ?
+       AND EXISTS (SELECT 1 FROM local_session WHERE singleton_id = 1 AND account_id = accounts.id)`,
+    passwordHash, passwordSalt, account.id, stored.password_hash, stored.password_salt,
+  );
+  if (changes !== 1) throw new Error('The account changed. Sign in again and retry.');
+}

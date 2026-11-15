@@ -2,23 +2,14 @@
 
 SportFinder helps buyers find sports equipment in Sri Lanka by district, sport, brand, or shop. Buyers can check prices and availability before visiting a shop, while shop owners can maintain their listings on the same installation. The app uses a local SQLite database so searching, signing in, and managing inventory work without internet access in an installed release.
 
-## Choose an interface
-
-Both branches use local SQLite and support buyer, shop owner, and admin accounts.
-
-| Branch | Interface |
-| --- | --- |
-| `main` | Original navigation, simplified registration, removable search filters, and sports artwork. |
-| [`feature/sports-ui`](https://github.com/thisuri-a11y/SportsFinder_Mobile/tree/feature/sports-ui) | Redesigned header and tab icons, an Account screen with password changes, locally bundled Exo 2 and Audiowide, and clearer browser database recovery. |
-
-Use the setup below for `main`. For instructions and screenshots of the redesign, see the [Sports UI README](https://github.com/thisuri-a11y/SportsFinder_Mobile/blob/feature/sports-ui/README.md).
+The `main` branch includes the redesigned navigation, sports artwork, and an Account screen with offline password changes.
 
 ## Key features
 
 - **Find gear:** Search by product, brand, sport, or shop and filter by district. The catalogue can show in-stock items only.
 - **Shop directory:** View each shop's address, phone number, and equipment. On a supported phone, the call button opens the dialer.
 - **Inventory management:** Add, edit, and delete shops and equipment. Listings show prices in Sri Lankan rupees (LKR) and stock availability. Saved changes appear in the local catalogue.
-- **Local accounts:** Buyers and shop owners can register in the app. Admins use the same sign-in form with an existing account.
+- **Local accounts:** Buyers and shop owners can register in the app. Admins use the same sign-in form with an existing account. Open **Account** to see your role, change your password, or sign out. Shop owners and admins can also open **Manage** from Account.
 
 | Role | Access |
 | --- | --- |
@@ -42,6 +33,14 @@ These six screenshots show the `main` version running in a browser with a phone-
 | --- | --- |
 | <img src="docs/screenshots/sportfinder-shop-owner.png" alt="Shop owner manages their own shop and equipment" width="260"> | <img src="docs/screenshots/sportfinder-admin.png" alt="Admin manages listings across multiple shops" width="260"> |
 
+| Shop directory | Shop details |
+| --- | --- |
+| <img src="docs/screenshots/sportfinder-shops.png" alt="Shop directory with district and address search" width="260"> | <img src="docs/screenshots/sportfinder-shop-details.png" alt="Shop details with address, phone number, and equipment" width="260"> |
+
+| Table Tennis catalogue | Account settings |
+| --- | --- |
+| <img src="docs/screenshots/sportfinder-catalogue.png" alt="Catalogue filtered to Table Tennis with price and availability" width="260"> | <img src="docs/screenshots/sportfinder-account.png" alt="Account settings with role, password change, and sign out" width="260"> |
+
 ## Technologies used
 
 | Technology | Purpose |
@@ -50,19 +49,20 @@ These six screenshots show the `main` version running in a browser with a phone-
 | Expo SDK 58 and Expo Router | Android, iOS, and web builds and navigation |
 | SQLite via `expo-sqlite` | Local catalogue, accounts, sessions, and database migrations |
 | `expo-crypto` and `@noble/hashes` | Password salts and scrypt password hashing |
+| Exo 2 and Audiowide via `expo-font` | Offline fonts for everyday controls and selected display titles |
 | Node.js, npm, and ESLint | Local web preview, database tests, dependencies, and linting |
 
 ## Project structure
 
 ```text
 SportsFinder_Mobile/
-├── assets/                 App icons and splash screen artwork
+├── assets/                 App icons, splash screen artwork, and offline fonts
 ├── docs/screenshots/       Screenshots used in this README
 ├── scripts/serve-web.cjs   Local server for the exported web app
 ├── src/
 │   ├── app/                Expo Router screens and layouts
 │   │   ├── login.jsx       Sign-in and account registration
-│   │   └── (tabs)/         Home, gear search, shops, catalogue, and management
+│   │   └── (tabs)/         Home, gear search, shops, catalogue, account, and management
 │   ├── auth/               Accounts, password checks, and local sessions
 │   ├── components/         Shared UI and theme
 │   ├── db/                 SQLite setup, migrations, queries, and permissions
@@ -91,7 +91,7 @@ Use Node.js 24.3 or newer within the Node 24 release line, with npm. For the web
    npm run web:preview
    ```
 
-3. Open `http://localhost:8083` and sign in with a demo account, or choose **Create an account** and select **Create a User Account** or **Create a Shop Owner Account**. If the database does not open, close duplicate SportFinder tabs and reload. Use the same browser profile and preview address to access your saved accounts and listings.
+3. Open `http://localhost:8083` and sign in with a demo account, or choose **Create an account** and select **Create a User Account** or **Create a Shop Owner Account**. The preview opens its SQLite database in one tab at a time.
 
 ### Demo accounts
 
@@ -113,6 +113,10 @@ npx expo run:ios --configuration Release --no-bundler
 ```
 
 Run `npm run lint` and `npm test` to check the source and exercise SQLite migrations, role permissions, ownership, catalogue filtering, and persistence.
+
+## Browser storage recovery
+
+If another SportFinder tab is using the database, close that tab and select **Retry**. If startup still fails, select **Reload page** to restart SQLite. Keep the same browser profile and preview address to access your saved accounts and listings.
 
 ## Offline storage and upgrades
 

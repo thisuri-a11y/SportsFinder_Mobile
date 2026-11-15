@@ -210,6 +210,7 @@ export default function ManageScreen() {
 
   return (
     <ScreenContainer>
+      <AppButton label="‹  Back to account" accessibilityLabel="Back to account" secondary onPress={() => router.navigate('/account')} />
       <ScreenTitle
         eyebrow={data.session.role === 'admin' ? 'ADMIN' : 'SHOP OWNER'}
         title="Manage shops and equipment"
