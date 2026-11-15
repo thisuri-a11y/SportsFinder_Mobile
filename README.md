@@ -2,7 +2,16 @@
 
 SportFinder helps buyers find sports equipment in Sri Lanka by district, sport, brand, or shop. Buyers can check prices and availability before visiting a shop, while shop owners can maintain their listings on the same installation. The app uses a local SQLite database so searching, signing in, and managing inventory work without internet access in an installed release.
 
-This is the original interface on `main`. The [Sports UI edition](https://github.com/thisuri-a11y/SportsFinder_Mobile/tree/feature/sports-ui) adds a branded header, icon tabs, and an Account screen.
+## Choose an interface
+
+Both branches use local SQLite and support buyer, shop owner, and admin accounts.
+
+| Branch | Interface |
+| --- | --- |
+| `main` | Original navigation, simplified registration, removable search filters, and sports artwork. |
+| [`feature/sports-ui`](https://github.com/thisuri-a11y/SportsFinder_Mobile/tree/feature/sports-ui) | Redesigned header and tab icons, an Account screen with password changes, locally bundled Exo 2 and Audiowide, and clearer browser database recovery. |
+
+Use the setup below for `main`. For instructions and screenshots of the redesign, see the [Sports UI README](https://github.com/thisuri-a11y/SportsFinder_Mobile/blob/feature/sports-ui/README.md).
 
 ## Key features
 
@@ -19,7 +28,7 @@ This is the original interface on `main`. The [Sports UI edition](https://github
 
 ## Screenshots
 
-Captured from the running web app at a phone-sized viewport using demo data.
+These six screenshots show the `main` version running in a browser with a phone-sized viewport and demo data. The [redesign gallery](https://github.com/thisuri-a11y/SportsFinder_Mobile/blob/feature/sports-ui/README.md#screenshots) also shows Account settings, the shop directory, shop details, and the Table Tennis catalogue.
 
 | Home | Find Gear |
 | --- | --- |
@@ -71,7 +80,7 @@ Use Node.js 24.3 or newer within the Node 24 release line, with npm. For the web
 1. Clone the repository and install the locked dependencies:
 
    ```sh
-   git clone https://github.com/thisuri-a11y/SportsFinder_Mobile.git
+   git clone --branch main https://github.com/thisuri-a11y/SportsFinder_Mobile.git
    cd SportsFinder_Mobile
    npm ci
    ```
@@ -82,7 +91,7 @@ Use Node.js 24.3 or newer within the Node 24 release line, with npm. For the web
    npm run web:preview
    ```
 
-3. Open `http://localhost:8083` and sign in with a demo account, or choose **Create an account** and select **Create a User Account** or **Create a Shop Owner Account**. Use one preview tab at a time so SQLite can open its database.
+3. Open `http://localhost:8083` and sign in with a demo account, or choose **Create an account** and select **Create a User Account** or **Create a Shop Owner Account**. If the database does not open, close duplicate SportFinder tabs and reload. Use the same browser profile and preview address to access your saved accounts and listings.
 
 ### Demo accounts
 
